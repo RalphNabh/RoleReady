@@ -25,7 +25,7 @@ const LANGUAGES = {
   csharp: { label: "C#", runtime: "csharp", file: "Main.cs", starter: "using System;\nclass MainClass {\n  static int[] TwoSum(int[] nums, int target) {\n    return new int[] {};\n  }\n  public static void Main() {\n    Console.WriteLine(string.Join(\",\", TwoSum(new int[]{2,7,11,15}, 9)));\n  }\n}" }
 };
 
-let config = {}, supabase = null, session = null;
+let config = {}, supabase = null, session = null, workspaceMounted = false;
 let state = { profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [...DEMO_JOBS], view: "home", importedJob: null };
 let recorder, chunks = [], recognition;
 
@@ -37,7 +37,7 @@ async function setup() {
     ({ data: { session } } = await supabase.auth.getSession());
     supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       session = nextSession;
-      if (!$("#view")) { if (session) location.assign(`${location.origin}?workspace=1`); return; }
+      if (!workspaceMounted) return;
       await hydrate();
       render();
     });
@@ -56,6 +56,7 @@ function mountWorkspace() {
   document.body.classList.remove("landing-mode");
   const shell = $("#shell-template").content.cloneNode(true);
   $("#app").replaceChildren(shell);
+  workspaceMounted = true;
   bindShell();
   render();
 }
