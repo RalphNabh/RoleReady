@@ -12,7 +12,32 @@ const DEMO_EVIDENCE = [
   { id: "e2", kind: "project", title: "StudyBuddy", details: "Created an AI study planner that reduced weekly planning time by 35% in a 20-user pilot using Python and React.", source: "User-confirmed", confirmed: true },
   { id: "e3", kind: "experience", title: "Student Tech Lab", details: "Shipped React features used by 500+ students and explained data structures as a teaching assistant.", source: "User-confirmed", confirmed: true }
 ];
-const DEMO_JOBS = [
+const REAL_DEMO_JOB = {
+  id: "google-swe-intern-2027",
+  title: "Software Engineering Intern, BS, Summer 2027",
+  company: "Google",
+  location: "Mountain View, CA, USA; Austin, TX, USA; +30 more",
+  source_url: "https://www.google.com/about/careers/applications/jobs/results/100648618540573382-software-engineering-intern/?page=2",
+  source_name: "Google Careers · listing snapshot",
+  fetched_at: "2026-09-12",
+  status: "saved",
+  next_date: "2026-09-25",
+  analysis: {
+    score: 76,
+    scoreNote: "Good fit with two proof gaps",
+    strengths: ["General-purpose programming evidence in JavaScript and Python.", "Two quantified product stories can demonstrate engineering ownership."],
+    gaps: ["No confirmed algorithms or data-structures evidence is saved.", "No confirmed testing or production-quality example is saved."],
+    recruiterLens: "The listing favors candidates who can discuss a programming language fluently, reason through algorithms, and show practical engineering judgment.",
+    resumeBullet: "Built CampusConnect, a full-stack campus-events platform used by 200+ students with React, Node.js, and SQL.",
+    proofMap: [
+      { requirement: "General-purpose programming", evidence: "Saved profile includes JavaScript and Python, with two shipped projects.", status: "proven", risk: "Expect a concrete implementation walkthrough.", nextAction: "Prepare one language-specific example with a clear technical tradeoff." },
+      { requirement: "Algorithms and data structures", evidence: "No confirmed algorithms evidence is saved.", status: "gap", risk: "A technical screen may probe problem decomposition and complexity.", nextAction: "Complete and explain two timed array/hash-map problems in a Proof Sprint." },
+      { requirement: "Engineering quality", evidence: "No testing or reliability artifact is confirmed.", status: "gap", risk: "Interviewers may ask how you validate code before shipping.", nextAction: "Add focused tests and a short test plan to an existing project." }
+    ]
+  },
+  sources: [{ title: "Google Careers — Software Engineering Intern, BS, Summer 2027", url: "https://www.google.com/about/careers/applications/jobs/results/100648618540573382-software-engineering-intern/?page=2", date: "2026-09-12", label: "Official job listing", highlights: ["Applications are reviewed on a rolling basis; listing states an anticipated September 25, 2026 application-window close."] }]
+};
+const DEMO_JOBS = [REAL_DEMO_JOB,
   { id: "demo-1", title: "Software Engineering Intern", company: "Northstar", location: "Toronto, ON", source_url: "https://simplify.jobs", source_name: "Curated demo", fetched_at: today(), status: "saved", next_date: "2026-09-16", analysis: { score: 84, scoreNote: "Strong application target", strengths: ["Direct React and Node.js evidence.", "Two concrete student-user outcomes."], gaps: ["No production testing evidence saved."], recruiterLens: "A recruiter will want a clear testing and ownership story.", resumeBullet: "Built CampusConnect, a full-stack campus-events platform used by 200+ students with React, Node.js, and SQL.", proofMap: [{ requirement: "React", evidence: "CampusConnect and Student Tech Lab work.", status: "proven", risk: "Expect a component ownership example.", nextAction: "Prepare a 60-second impact story." }, { requirement: "Backend services", evidence: "Node.js on CampusConnect.", status: "proven", risk: "Expect an API-design example.", nextAction: "Explain one endpoint and tradeoff." }, { requirement: "Testing", evidence: "No confirmed testing evidence.", status: "gap", risk: "Interviewers may question reliability.", nextAction: "Ship two focused tests in a Proof Sprint." }] }, sources: [{ title: "Northstar engineering blog", url: "https://example.com", highlights: ["Publicly reported engineering signal"] }] },
   { id: "demo-2", title: "Frontend Developer Intern", company: "CivicLab", location: "Remote", source_url: "https://simplify.jobs", source_name: "Curated demo", fetched_at: today(), status: "assessment", next_date: "2026-09-18", analysis: { score: 76, scoreNote: "Good fit with one proof gap", strengths: ["Strong React relevance."], gaps: ["Accessibility evidence is not yet captured."], recruiterLens: "Lead with user outcomes, then show attention to accessible UI.", resumeBullet: "Built React experiences for 500+ student users at a Student Tech Lab.", proofMap: [{ requirement: "React", evidence: "Saved profile lists React and shipped features.", status: "proven", risk: "They will ask about component decisions.", nextAction: "Prepare a component architecture sketch." }, { requirement: "Accessibility", evidence: "No explicit accessible UI evidence.", status: "gap", risk: "Could be a recruiter concern.", nextAction: "Audit and document keyboard navigation in an existing project." }] }, sources: [] }
 ];
