@@ -37,7 +37,7 @@ async function setup() {
     ({ data: { session } } = await supabase.auth.getSession());
     supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       session = nextSession;
-      if (!$("#view")) { if (session) location.assign(location.origin); return; }
+      if (!$("#view")) { if (session) location.assign(`${location.origin}?workspace=1`); return; }
       await hydrate();
       render();
     });
@@ -46,7 +46,7 @@ async function setup() {
   if (query.get("importJob")) {
     try { state.importedJob = fromBase64Json(query.get("importJob")); } catch { state.importedJob = null; }
   }
-  if (!session && !demoPresentation && !state.importedJob) { renderLanding(); return; }
+  if (!query.get("workspace") && !demoPresentation && !state.importedJob) { renderLanding(); return; }
   await hydrate();
   mountWorkspace();
   if (state.importedJob) openImportedJob();
@@ -65,8 +65,16 @@ function renderLanding() {
   $("#app").replaceChildren($("#landing-template").content.cloneNode(true));
   $("#landing-demo").onclick = () => location.assign(`${location.pathname}?demo=1`);
   $("#landing-demo-top").onclick = () => location.assign(`${location.pathname}?demo=1`);
-  $("#landing-signin").onclick = auth;
-  $("#landing-signin-hero").onclick = auth;
+  const openWorkspace = () => location.assign(`${location.pathname}?workspace=1`);
+  if (session) {
+    $("#landing-signin").textContent = "Open workspace";
+    $("#landing-signin-hero").innerHTML = `Open my command center <span>↗</span>`;
+    $("#landing-signin").onclick = openWorkspace;
+    $("#landing-signin-hero").onclick = openWorkspace;
+  } else {
+    $("#landing-signin").onclick = auth;
+    $("#landing-signin-hero").onclick = auth;
+  }
 }
 
 async function hydrate() {
@@ -95,7 +103,7 @@ function bindShell() {
 async function auth() {
   if (!supabase) { window.alert("Add Supabase public keys in Vercel to enable GitHub sign-in."); return; }
   if (session) { await supabase.auth.signOut(); return; }
-  await supabase.auth.signInWithOAuth({ provider: "github", options: { redirectTo: location.origin } });
+  await supabase.auth.signInWithOAuth({ provider: "github", options: { redirectTo: `${location.origin}?workspace=1` } });
 }
 
 function render() {
