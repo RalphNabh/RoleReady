@@ -43,6 +43,7 @@ async function setup() {
     try { state.importedJob = fromBase64Json(query.get("importJob")); } catch { toast("The job import link was invalid."); }
   }
   await hydrate();
+  if (query.get("demo") === "1") state = { ...state, profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [...DEMO_JOBS] };
   bindShell();
   render();
   if (state.importedJob) openImportedJob();
