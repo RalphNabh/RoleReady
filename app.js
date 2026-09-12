@@ -4,6 +4,7 @@ const uid = () => crypto.randomUUID();
 const today = () => new Date().toISOString().slice(0, 10);
 const base64Json = (value) => btoa(unescape(encodeURIComponent(JSON.stringify(value))));
 const fromBase64Json = (value) => JSON.parse(decodeURIComponent(escape(atob(value))));
+const demoPresentation = new URLSearchParams(location.search).get("demo") === "1";
 
 const DEMO_PROFILE = { full_name: "Alex Chen", target_role: "Software Engineering Intern", skills: ["JavaScript", "React", "Python", "SQL", "Node.js", "Git"] };
 const DEMO_EVIDENCE = [
@@ -43,13 +44,16 @@ async function setup() {
     try { state.importedJob = fromBase64Json(query.get("importJob")); } catch { toast("The job import link was invalid."); }
   }
   await hydrate();
-  if (query.get("demo") === "1") state = { ...state, profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [...DEMO_JOBS] };
   bindShell();
   render();
   if (state.importedJob) openImportedJob();
 }
 
 async function hydrate() {
+  if (demoPresentation) {
+    state = { ...state, profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [...DEMO_JOBS] };
+    return;
+  }
   if (!supabase || !session) return;
   const [{ data: profile }, { data: evidence }, { data: jobs }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle(),
