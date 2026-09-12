@@ -20,7 +20,7 @@ The prototype ships with a clearly labelled demo candidate profile. Edit it from
 
 ### Optional live-agent mode
 
-The extension remains usable without cloud services. To enable live analysis and sourced public interview research, deploy this repository to Vercel and add `OPENROUTER_API_KEY` and `EXA_API_KEY` as server-side environment variables. Then add the deployed URL in Extension options. Never place either key in the extension or commit it to GitHub.
+The extension remains usable without cloud services. To enable live analysis and sourced public interview research, deploy this repository to Vercel and add `OPENROUTER_API_KEY`, `EXA_API_KEY`, and `ALLOWED_EXTENSION_ORIGIN` as server-side environment variables. Set the last value to `chrome-extension://<your Chrome extension ID>`. Then add the deployed URL in Extension options. Never place either key in the extension or commit it to GitHub.
 
 ## Install locally in Chrome
 

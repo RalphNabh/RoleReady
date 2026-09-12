@@ -6,14 +6,17 @@ function json(res, status, body) {
 
 function setCors(req, res) {
   const origin = req.headers.origin || "";
-  // Chrome extensions have chrome-extension:// origins. Production should restrict this
-  // to the published extension ID and add user authentication.
+  const allowedOrigin = process.env.ALLOWED_EXTENSION_ORIGIN;
+  if (allowedOrigin && origin !== allowedOrigin) return false;
+  // Chrome extensions have chrome-extension:// origins. A production service should
+  // additionally require an authenticated user and rate-limit requests.
   if (origin.startsWith("chrome-extension://") || origin === "http://localhost:3000") {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
   }
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  return true;
 }
 
 function safeText(value, limit = 9000) {
@@ -90,7 +93,7 @@ const analysisSchema = {
 };
 
 export default async function handler(req, res) {
-  setCors(req, res);
+  if (!setCors(req, res)) return json(res, 403, { error: "This request origin is not allowed." });
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return json(res, 405, { error: "POST only" });
   if (JSON.stringify(req.body || {}).length > MAX_BODY_BYTES) return json(res, 413, { error: "Request is too large." });
