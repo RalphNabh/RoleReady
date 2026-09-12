@@ -64,6 +64,7 @@ function bindShell() {
   document.querySelectorAll(".nav").forEach((button) => button.onclick = () => { state.view = button.dataset.view; render(); });
   $("#primary-action").onclick = () => state.view === "vault" ? openEvidenceModal() : state.view === "discover" ? openImportedJob() : openEvidenceModal();
   $("#auth-button").onclick = auth;
+  $("#mobile-auth-button").onclick = auth;
 }
 
 async function auth() {
@@ -75,6 +76,7 @@ async function auth() {
 function render() {
   $("#auth-status").textContent = session ? `Signed in as ${state.profile.full_name || "candidate"}` : "Demo workspace — sign in to sync";
   $("#auth-button").textContent = session ? "Sign out" : "Sign in with GitHub";
+  $("#mobile-auth-button").textContent = session ? "Sign out" : "Sign in";
   document.querySelectorAll(".nav").forEach((button) => button.classList.toggle("active", button.dataset.view === state.view));
   const title = { home: "Your next best move", discover: "Discover strategic opportunities", pipeline: "Pipeline and calendar", vault: "Your evidence vault", job: "Role workspace", assessment: "Coding assessment", interview: "Voice interview" }[state.view];
   $("#header-title").textContent = title;
