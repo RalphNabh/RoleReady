@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "check": "node --check api/agent.js && node --check api/config.js && node --check api/assessment.js && node --check api/voice.js && node --check background.js && node --check content.js && node --check sidepanel.js && node --check options.js && node --check app.js"
+    "check": "node --check api/agent.js && node --check api/config.js && node --check api/assessment.js && node --check api/voice.js && node --check api/og.js && node --check background.js && node --check content.js && node --check sidepanel.js && node --check options.js && node --check app.js"
+  },
+  "dependencies": {
+    "@vercel/og": "^0.8.5",
+    "react": "^18.3.1"
   }
 }
