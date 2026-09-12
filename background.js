@@ -23,8 +23,10 @@ function roundRect(context, x, y, width, height, radius) {
 }
 
 function roleReadyIcon(size) {
+  if (typeof OffscreenCanvas === "undefined") return null;
   const canvas = new OffscreenCanvas(size, size);
   const context = canvas.getContext("2d");
+  if (!context) return null;
   const unit = size / 128;
   roundRect(context, 8 * unit, 8 * unit, 112 * unit, 112 * unit, 31 * unit);
   context.fillStyle = "#172033";
@@ -48,17 +50,20 @@ function roleReadyIcon(size) {
 }
 
 async function applyRoleReadyIcon() {
-  await chrome.action.setIcon({ imageData: { 16: roleReadyIcon(16), 32: roleReadyIcon(32), 48: roleReadyIcon(48), 128: roleReadyIcon(128) } });
+  const icons = Object.fromEntries([16, 32, 48, 128].map((size) => [size, roleReadyIcon(size)]).filter(([, icon]) => icon));
+  if (Object.keys(icons).length) await chrome.action.setIcon({ imageData: icons });
 }
 
-chrome.runtime.onInstalled.addListener(async () => {
-  const { candidateProfile } = await chrome.storage.local.get("candidateProfile");
-  if (!candidateProfile) await chrome.storage.local.set({ candidateProfile: DEMO_PROFILE });
-  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-  await applyRoleReadyIcon();
+chrome.runtime.onInstalled.addListener(() => {
+  void (async () => {
+    const { candidateProfile } = await chrome.storage.local.get("candidateProfile");
+    if (!candidateProfile) await chrome.storage.local.set({ candidateProfile: DEMO_PROFILE });
+    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+    await applyRoleReadyIcon();
+  })().catch((error) => console.warn("RoleReady setup used a compatibility fallback.", error));
 });
 
-chrome.runtime.onStartup.addListener(() => applyRoleReadyIcon());
+chrome.runtime.onStartup.addListener(() => void applyRoleReadyIcon().catch(() => {}));
 applyRoleReadyIcon().catch(() => { /* The default browser letter is an acceptable fallback before Chrome initializes OffscreenCanvas. */ });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

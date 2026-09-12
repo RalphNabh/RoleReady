@@ -3,6 +3,7 @@ const template = document.querySelector("#job-template");
 let context;
 let recognition;
 let transcript = [];
+const FALLBACK_PROFILE = { name: "", targetRole: "", skills: [], projects: [], experiences: [] };
 
 const words = (text) => new Set((text || "").toLowerCase().match(/[a-z][a-z+#.-]{1,}/g) || []);
 const intersection = (a, b) => [...a].filter((item) => b.has(item));
@@ -37,7 +38,7 @@ function offlineAnalyze(job, profile) {
   return { score, strengths, gaps, bullet, matched, proofMap, recruiterLens: proofMap.find((item) => item.status !== "proven")?.risk || "Your strongest evidence is relevant; lead with concrete results." };
 }
 
-async function analyze(job, profile) {
+async function analyze(job, profile = {}) {
   if (!profile.apiBaseUrl) return { ...offlineAnalyze(job, profile), mode: "offline", sources: [] };
   try {
     const response = await fetch(`${profile.apiBaseUrl.replace(/\/$/, "")}/api/agent`, {
@@ -147,4 +148,15 @@ async function finishInterview(job, profile, result) {
 
 document.querySelector("#settings").onclick = () => chrome.runtime.openOptionsPage();
 document.querySelector("#dashboard").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
-chrome.runtime.sendMessage({ type: "GET_CONTEXT" }, (data) => { context = data; render(); });
+chrome.runtime.sendMessage({ type: "GET_CONTEXT" }, (data) => {
+  if (chrome.runtime.lastError) {
+    console.warn("RoleReady could not reach its background worker.", chrome.runtime.lastError.message);
+    context = { candidateProfile: FALLBACK_PROFILE, currentJob: null };
+  } else {
+    context = { candidateProfile: data?.candidateProfile || FALLBACK_PROFILE, currentJob: data?.currentJob || null };
+  }
+  render().catch((error) => {
+    console.error("RoleReady panel could not render.", error);
+    app.innerHTML = `<section class="empty"><span>✦</span><h1>RoleReady is ready</h1><p>Open or refresh a supported job posting, then reopen this panel.</p></section>`;
+  });
+});
