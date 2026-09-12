@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="340" y1="0" x2="1600" y2="1000" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101827"/>
+      <stop offset="1" stop-color="#19243A"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="360" y1="72" x2="1540" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF"/>
+      <stop offset="1" stop-color="#EDF3FC"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1600" height="1000" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#060B14" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" rx="34" fill="url(#bg)"/>
+  <rect x="24" y="24" width="1552" height="58" rx="16" fill="#0B111C"/>
+  <circle cx="55" cy="53" r="8" fill="#FC6B6B"/>
+  <circle cx="79" cy="53" r="8" fill="#F5C85E"/>
+  <circle cx="103" cy="53" r="8" fill="#62D48E"/>
+  <rect x="514" y="41" width="572" height="24" rx="12" fill="#1E2A3C"/>
+  <text x="800" y="58" text-anchor="middle" fill="#8FA1BA" font-family="Inter, Arial, sans-serif" font-size="14">roleready.app · Google software engineering internship</text>
+  <rect x="24" y="102" width="286" height="874" rx="20" fill="#121B2B"/>
+  <g transform="translate(54 138)">
+    <rect width="42" height="42" rx="12" fill="#1B3159" stroke="#527FF1"/>
+    <path d="M29 11C23 5 14 5 9 11C4 16 4 25 9 30L8 36L15 33C21 35 28 33 32 28C37 22 35 15 29 11Z" stroke="#9EB9FF" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M15 13H22C28 13 31 16 31 21C31 24 29 27 26 28L31 34H25L21 29H19V34H15V13ZM19 17V25H21C24 25 26 24 26 21C26 19 24 17 21 17H19Z" fill="white"/>
+  </g>
+  <text x="108" y="166" fill="white" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="700">RoleReady</text>
+  <text x="54" y="235" fill="#8190A7" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="2">YOUR CAREER OS</text>
+  <g font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">
+    <rect x="42" y="262" width="250" height="52" rx="12" fill="#27344A"/>
+    <text x="78" y="295" fill="#F7FAFF">Today</text>
+    <text x="78" y="355" fill="#AEB9CA">Roles</text>
+    <text x="78" y="415" fill="#AEB9CA">Calendar</text>
+    <text x="78" y="475" fill="#AEB9CA">Evidence vault</text>
+  </g>
+  <g stroke="#83A8FF" stroke-width="2" fill="none">
+    <path d="M58 280L63 275L68 280V287H58V280Z"/>
+    <circle cx="62" cy="343" r="4"/><path d="M65 346L70 351"/>
+    <rect x="57" y="399" width="11" height="11" rx="1"/>
+    <path d="M62 457L69 464L62 471L55 464L62 457Z"/>
+  </g>
+  <path d="M54 869H280" stroke="#27344A"/>
+  <circle cx="67" cy="909" r="14" fill="#7898EC"/>
+  <text x="91" y="915" fill="#98A7BD" font-family="Inter, Arial, sans-serif" font-size="15">Signed in as Alex Chen</text>
+  <rect x="334" y="102" width="1242" height="874" rx="20" fill="url(#hero)" filter="url(#shadow)"/>
+  <text x="382" y="166" fill="#7890B7" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2">ROLE WORKSPACE · GOOGLE</text>
+  <text x="382" y="216" fill="#172338" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="750">Software Engineering Intern, BS, Summer 2027</text>
+  <text x="382" y="248" fill="#61718A" font-family="Inter, Arial, sans-serif" font-size="17">Google · Mountain View, CA · Official listing saved Sep 12</text>
+  <g transform="translate(1401 157)">
+    <rect width="118" height="52" rx="14" fill="#175CE6"/>
+    <text x="59" y="32" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">Open role</text>
+  </g>
+  <rect x="382" y="286" width="1138" height="132" rx="18" fill="#EFF5FF" stroke="#D7E5FF"/>
+  <text x="416" y="326" fill="#637799" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">EVIDENCE-GROUNDED READINESS</text>
+  <text x="416" y="383" fill="#172338" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="750">76%</text>
+  <text x="531" y="365" fill="#1E3C72" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Truthful fit, not keyword fit.</text>
+  <text x="531" y="391" fill="#667895" font-family="Inter, Arial, sans-serif" font-size="16">Two proven signals · Two focused gaps · One clear next move</text>
+  <circle cx="1440" cy="352" r="35" stroke="#5B8AF2" stroke-width="8" stroke-dasharray="167 53" transform="rotate(-90 1440 352)"/>
+  <text x="1440" y="358" text-anchor="middle" fill="#1F4FAE" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800">76%</text>
+  <text x="382" y="472" fill="#172338" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="750">Proof Map</text>
+  <text x="382" y="500" fill="#6A7890" font-family="Inter, Arial, sans-serif" font-size="16">Every role requirement is tied to confirmed evidence.</text>
+  <g font-family="Inter, Arial, sans-serif">
+    <rect x="382" y="530" width="352" height="154" rx="16" fill="white" stroke="#DDE6F4"/>
+    <rect x="758" y="530" width="352" height="154" rx="16" fill="white" stroke="#DDE6F4"/>
+    <rect x="1134" y="530" width="352" height="154" rx="16" fill="white" stroke="#DDE6F4"/>
+    <circle cx="416" cy="566" r="10" fill="#34B77B"/>
+    <text x="440" y="572" fill="#15935D" font-size="14" font-weight="800">PROVEN</text>
+    <text x="416" y="614" fill="#1E2B41" font-size="20" font-weight="700">JavaScript / Python</text>
+    <text x="416" y="645" fill="#667895" font-size="15">Confirmed in shipped projects</text>
+    <circle cx="792" cy="566" r="10" fill="#E3A93B"/>
+    <text x="816" y="572" fill="#B2780D" font-size="14" font-weight="800">PARTIAL</text>
+    <text x="792" y="614" fill="#1E2B41" font-size="20" font-weight="700">System design</text>
+    <text x="792" y="645" fill="#667895" font-size="15">Practice signal to strengthen</text>
+    <circle cx="1168" cy="566" r="10" fill="#DC656B"/>
+    <text x="1192" y="572" fill="#B53F49" font-size="14" font-weight="800">GAP</text>
+    <text x="1168" y="614" fill="#1E2B41" font-size="20" font-weight="700">Testing depth</text>
+    <text x="1168" y="645" fill="#667895" font-size="15">No verified example yet</text>
+  </g>
+  <rect x="382" y="720" width="1104" height="184" rx="18" fill="#14203A"/>
+  <text x="416" y="761" fill="#9FB9F4" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="1.5">NEXT BEST MOVE · PROOF SPRINT</text>
+  <text x="416" y="806" fill="white" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="750">Ship two focused tests for your strongest project.</text>
+  <text x="416" y="840" fill="#B2C1DB" font-family="Inter, Arial, sans-serif" font-size="16">Turn the testing gap into a reviewable artifact before the application deadline.</text>
+  <rect x="1274" y="779" width="176" height="54" rx="14" fill="#6F98FF"/>
+  <text x="1362" y="813" text-anchor="middle" fill="#101A2C" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800">Start sprint</text>
+</svg>
