@@ -1,0 +1,9 @@
+{
+  "name": "roleready",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "check": "node --check api/agent.js && node --check background.js && node --check content.js && node --check sidepanel.js && node --check options.js"
+  }
+}

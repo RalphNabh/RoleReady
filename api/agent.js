@@ -1,0 +1,125 @@
+const MAX_BODY_BYTES = 45_000;
+
+function json(res, status, body) {
+  res.status(status).json(body);
+}
+
+function setCors(req, res) {
+  const origin = req.headers.origin || "";
+  // Chrome extensions have chrome-extension:// origins. Production should restrict this
+  // to the published extension ID and add user authentication.
+  if (origin.startsWith("chrome-extension://") || origin === "http://localhost:3000") {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+function safeText(value, limit = 9000) {
+  return typeof value === "string" ? value.replace(/\0/g, "").slice(0, limit) : "";
+}
+
+function candidateFacts(profile = {}) {
+  return {
+    name: safeText(profile.name, 100),
+    targetRole: safeText(profile.targetRole, 150),
+    skills: Array.isArray(profile.skills) ? profile.skills.map((x) => safeText(x, 80)).slice(0, 40) : [],
+    projects: Array.isArray(profile.projects) ? profile.projects.slice(0, 8) : [],
+    experiences: Array.isArray(profile.experiences) ? profile.experiences.map((x) => safeText(x, 900)).slice(0, 12) : []
+  };
+}
+
+async function openRouter(messages, responseFormat) {
+  if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured.");
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": process.env.APP_URL || "https://github.com/RalphNabh/RoleReady",
+      "X-OpenRouter-Title": "RoleReady"
+    },
+    body: JSON.stringify({
+      model: process.env.OPENROUTER_MODEL || "~openai/gpt-latest",
+      temperature: 0.25,
+      max_tokens: 1200,
+      response_format: responseFormat,
+      messages
+    })
+  });
+  if (!response.ok) throw new Error(`OpenRouter request failed (${response.status}).`);
+  const payload = await response.json();
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenRouter returned no response.");
+  return JSON.parse(content);
+}
+
+async function research(company, title) {
+  if (!process.env.EXA_API_KEY) return [];
+  const query = `public interview experience and interview preparation for ${company} ${title}`;
+  const response = await fetch("https://api.exa.ai/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": process.env.EXA_API_KEY },
+    body: JSON.stringify({ query, type: "auto", numResults: 4, contents: { highlights: { maxCharacters: 500 } } })
+  });
+  if (!response.ok) return [];
+  const payload = await response.json();
+  return (payload.results || []).map((item) => ({ title: safeText(item.title, 180), url: safeText(item.url, 1000), highlights: (item.highlights || []).map((x) => safeText(x, 300)).slice(0, 2) }));
+}
+
+const analysisSchema = {
+  type: "json_schema",
+  json_schema: {
+    name: "role_ready_analysis",
+    strict: true,
+    schema: {
+      type: "object",
+      properties: {
+        score: { type: "integer", minimum: 0, maximum: 100 },
+        scoreNote: { type: "string" },
+        strengths: { type: "array", items: { type: "string" } },
+        gaps: { type: "array", items: { type: "string" } },
+        resumeBullet: { type: "string" },
+        interviewQuestion: { type: "string" }
+      },
+      required: ["score", "scoreNote", "strengths", "gaps", "resumeBullet", "interviewQuestion"],
+      additionalProperties: false
+    }
+  }
+};
+
+export default async function handler(req, res) {
+  setCors(req, res);
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method !== "POST") return json(res, 405, { error: "POST only" });
+  if (JSON.stringify(req.body || {}).length > MAX_BODY_BYTES) return json(res, 413, { error: "Request is too large." });
+
+  try {
+    const { action, job = {}, profile = {}, answer = "", previousQuestion = "" } = req.body || {};
+    const facts = candidateFacts(profile);
+    const normalizedJob = { title: safeText(job.title, 220), company: safeText(job.company, 220), description: safeText(job.description, 11000), location: safeText(job.location, 220) };
+    if (!normalizedJob.title || !normalizedJob.description) return json(res, 400, { error: "A job title and description are required." });
+
+    if (action === "analyze") {
+      const analysis = await openRouter([
+        { role: "system", content: "You are RoleReady, a rigorous job-search agent. Evaluate ONLY the candidate facts supplied. Never invent skills, achievements, metrics, education, or company facts. Give a calibrated fit score and constructive gaps. The resume bullet must only restate candidate evidence with clearer relevance. Return JSON matching the schema." },
+        { role: "user", content: JSON.stringify({ candidateFacts: facts, job: normalizedJob }) }
+      ], analysisSchema);
+      const sources = await research(normalizedJob.company, normalizedJob.title);
+      return json(res, 200, { analysis, sources, mode: "live" });
+    }
+
+    if (action === "interview-feedback") {
+      const result = await openRouter([
+        { role: "system", content: "You are a fair technical interviewer. Evaluate the candidate's spoken answer against the job and candidate facts. Do not claim private company knowledge or guaranteed questions. Return strict JSON with score integer 0-100, summary string, strengths string array, improvements string array, nextQuestion string. Do not penalize accent or dialect." },
+        { role: "user", content: JSON.stringify({ candidateFacts: facts, job: normalizedJob, question: safeText(previousQuestion, 1200), answer: safeText(answer, 6000) }) }
+      ], { type: "json_object" });
+      return json(res, 200, { feedback: result, mode: "live" });
+    }
+    return json(res, 400, { error: "Unknown action." });
+  } catch (error) {
+    console.error("RoleReady agent error", error);
+    return json(res, 502, { error: error.message || "The agent could not complete that request." });
+  }
+}

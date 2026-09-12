@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Your contextual job-search and interview practice agent.",
   "permissions": ["storage", "sidePanel", "activeTab", "scripting"],
-  "host_permissions": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*"],
+  "host_permissions": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*", "https://*.vercel.app/*"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": { "default_title": "Open RoleReady" },
   "side_panel": { "default_path": "sidepanel.html" },

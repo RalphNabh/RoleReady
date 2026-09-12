@@ -7,7 +7,7 @@ let transcript = [];
 const words = (text) => new Set((text || "").toLowerCase().match(/[a-z][a-z+#.-]{1,}/g) || []);
 const intersection = (a, b) => [...a].filter((item) => b.has(item));
 
-function analyze(job, profile) {
+function offlineAnalyze(job, profile) {
   const pageWords = words(`${job.title} ${job.description}`);
   const skills = profile.skills || [];
   const matched = skills.filter((skill) => pageWords.has(skill.toLowerCase()));
@@ -30,6 +30,21 @@ function analyze(job, profile) {
   return { score, strengths, gaps, bullet, matched };
 }
 
+async function analyze(job, profile) {
+  if (!profile.apiBaseUrl) return { ...offlineAnalyze(job, profile), mode: "offline", sources: [] };
+  try {
+    const response = await fetch(`${profile.apiBaseUrl.replace(/\/$/, "")}/api/agent`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "analyze", job, profile })
+    });
+    if (!response.ok) throw new Error("Live agent unavailable");
+    const { analysis, sources } = await response.json();
+    return { ...analysis, bullet: analysis.resumeBullet, matched: profile.skills || [], mode: "live", sources: sources || [] };
+  } catch (error) {
+    console.warn("Using RoleReady offline analysis", error);
+    return { ...offlineAnalyze(job, profile), mode: "offline", sources: [] };
+  }
+}
+
 function speak(text) {
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -37,13 +52,13 @@ function speak(text) {
   speechSynthesis.speak(utterance);
 }
 
-function render() {
+async function render() {
   const { currentJob: job, candidateProfile: profile } = context;
   if (!job?.description) {
     app.innerHTML = `<section class="empty"><span>✦</span><h1>Open a job posting</h1><p>Visit LinkedIn, Greenhouse, Lever, or Simplify Jobs. RoleReady will read the role in context.</p></section>`;
     return;
   }
-  const result = analyze(job, profile);
+  const result = await analyze(job, profile);
   const fragment = template.content.cloneNode(true);
   fragment.querySelector(".job-title").textContent = job.title;
   fragment.querySelector(".company").textContent = `${job.company}${job.location ? ` · ${job.location}` : ""}`;
@@ -52,6 +67,11 @@ function render() {
   fragment.querySelector(".strengths").innerHTML = result.strengths.map((x) => `<li>${x}</li>`).join("");
   fragment.querySelector(".gaps").innerHTML = result.gaps.map((x) => `<li>${x}</li>`).join("");
   fragment.querySelector(".resume-bullet").textContent = result.bullet;
+  if (result.sources?.length) {
+    const sources = fragment.querySelector("#sources");
+    sources.classList.remove("hidden");
+    sources.querySelector(".source-list").innerHTML = result.sources.map((source) => `<a target="_blank" rel="noreferrer" href="${source.url}"><b>${source.title}</b><span>${source.highlights?.[0] || "Open source"}</span></a>`).join("");
+  }
   app.replaceChildren(fragment);
   document.querySelector("#save").onclick = () => saveApplication(job, result);
   document.querySelector("#practice").onclick = () => showPractice(job, profile, result);
@@ -70,7 +90,7 @@ function showPractice(job, profile, result) {
   box.classList.remove("hidden");
   box.scrollIntoView({ behavior: "smooth" });
   document.querySelector("#start").onclick = () => startInterview(question, job, result);
-  document.querySelector("#finish").onclick = () => finishInterview(job, result);
+  document.querySelector("#finish").onclick = () => finishInterview(job, profile, result);
 }
 
 function startInterview(question, job, result) {
@@ -95,13 +115,23 @@ function startInterview(question, job, result) {
   recognition.start();
 }
 
-function finishInterview(job, result) {
+async function finishInterview(job, profile, result) {
   recognition?.stop();
   const answer = transcript.join(" ");
   const answerWords = words(answer);
-  const score = Math.min(95, Math.max(52, 55 + (answer.length > 120 ? 12 : 0) + (intersection(answerWords, new Set(result.matched.map((x) => x.toLowerCase()))).length * 6)));
+  let score = Math.min(95, Math.max(52, 55 + (answer.length > 120 ? 12 : 0) + (intersection(answerWords, new Set(result.matched.map((x) => x.toLowerCase()))).length * 6)));
+  let coachText = `Lead with the situation, name your exact contribution, then quantify the outcome. Connect it explicitly to ${job.company}’s needs: ${result.matched.join(", ") || "the role’s core skills"}.`;
+  let nextQuestion = "Tell me about a technical decision you made under ambiguity and how you measured whether it worked.";
+  let strengths = [];
+  if (profile.apiBaseUrl) {
+    try {
+      const response = await fetch(`${profile.apiBaseUrl.replace(/\/$/, "")}/api/agent`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "interview-feedback", job, profile, answer, previousQuestion: document.querySelector("#question").textContent }) });
+      const { feedback } = await response.json();
+      if (feedback) { score = feedback.score; coachText = feedback.improvements?.join(" ") || feedback.summary; nextQuestion = feedback.nextQuestion || nextQuestion; strengths = feedback.strengths || []; }
+    } catch { /* The offline rubric remains available for a reliable demo. */ }
+  }
   const feedback = document.querySelector("#feedback");
-  feedback.innerHTML = `<p class="eyebrow">INTERVIEW FEEDBACK</p><h2>${score}/100 — ${score > 75 ? "Strong foundation" : "Practice your structure"}</h2><div class="rubric"><p><b>Relevance</b><span>${Math.min(5, Math.round(score / 20))}/5</span></p><p><b>STAR structure</b><span>${answer.length > 160 ? "4/5" : "3/5"}</span></p><p><b>Technical evidence</b><span>${result.matched.length ? "4/5" : "3/5"}</span></p></div><h3>Coach’s next step</h3><p>Lead with the situation, name your exact contribution, then quantify the outcome. Connect it explicitly to ${job.company}’s needs: ${result.matched.join(", ") || "the role’s core skills"}.</p><h3>Next question</h3><p>Tell me about a technical decision you made under ambiguity and how you measured whether it worked.</p>`;
+  feedback.innerHTML = `<p class="eyebrow">INTERVIEW FEEDBACK</p><h2>${score}/100 — ${score > 75 ? "Strong foundation" : "Practice your structure"}</h2><div class="rubric"><p><b>Relevance</b><span>${Math.min(5, Math.round(score / 20))}/5</span></p><p><b>STAR structure</b><span>${answer.length > 160 ? "4/5" : "3/5"}</span></p><p><b>Technical evidence</b><span>${result.matched.length ? "4/5" : "3/5"}</span></p></div>${strengths.length ? `<h3>What worked</h3><p>${strengths.join(" ")}</p>` : ""}<h3>Coach’s next step</h3><p>${coachText}</p><h3>Next question</h3><p>${nextQuestion}</p>`;
   feedback.classList.remove("hidden");
   speak(`Interview complete. Your score is ${score} out of 100. Your biggest opportunity is to lead with your individual contribution and a measurable outcome.`);
 }
