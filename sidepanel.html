@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="styles.css"><title>RoleReady</title></head>
+  <body>
+    <header><div class="brand"><span class="spark">✦</span><span>RoleReady</span></div><button id="settings" title="Candidate profile">⚙</button></header>
+    <main id="app"><section class="loading"><div class="pulse"></div><p>Reading this opportunity…</p></section></main>
+    <template id="job-template">
+      <section class="hero"><p class="eyebrow">LIVE JOB CONTEXT</p><h1 class="job-title"></h1><p class="company"></p></section>
+      <section class="score-card"><div><p class="label">ROLE FIT</p><strong class="score"></strong><span class="score-note"></span></div><div class="ring"><span class="score"></span></div></section>
+      <section><h2>Why you’re a fit</h2><ul class="strengths"></ul></section>
+      <section><h2>Close these gaps</h2><ul class="gaps"></ul></section>
+      <section class="resume"><div class="section-heading"><h2>Tailored resume angle</h2><span>Truth-first</span></div><p class="resume-bullet"></p></section>
+      <button class="primary" id="save">Save application & build prep plan</button>
+      <button class="secondary" id="practice">🎙 Practice with voice interviewer</button>
+      <section class="interview hidden" id="interview"><p class="eyebrow">MOCK INTERVIEW</p><h2>Ready when you are.</h2><p id="question"></p><div class="transcript" id="transcript"></div><button class="primary" id="start">Start interview</button><button class="secondary hidden" id="finish">Finish & get feedback</button></section>
+      <section class="feedback hidden" id="feedback"></section>
+    </template>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

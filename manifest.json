@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "RoleReady",
+  "version": "0.1.0",
+  "description": "Your contextual job-search and interview practice agent.",
+  "permissions": ["storage", "sidePanel", "activeTab", "scripting"],
+  "host_permissions": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "Open RoleReady" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
