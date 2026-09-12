@@ -68,7 +68,8 @@ async function research(company, title) {
   });
   if (!response.ok) return [];
   const payload = await response.json();
-  return (payload.results || []).map((item) => ({ title: safeText(item.title, 180), url: safeText(item.url, 1000), highlights: (item.highlights || []).map((x) => safeText(x, 300)).slice(0, 2) }));
+  const retrievedAt = new Date().toISOString().slice(0, 10);
+  return (payload.results || []).map((item) => ({ title: safeText(item.title, 180), url: safeText(item.url, 1000), highlights: (item.highlights || []).map((x) => safeText(x, 300)).slice(0, 2), date: safeText(item.publishedDate || item.published_date || retrievedAt, 30), label: "Publicly reported" }));
 }
 
 const analysisSchema = {

@@ -6,6 +6,8 @@ let transcript = [];
 
 const words = (text) => new Set((text || "").toLowerCase().match(/[a-z][a-z+#.-]{1,}/g) || []);
 const intersection = (a, b) => [...a].filter((item) => b.has(item));
+const esc = (value = "") => String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+const safeUrl = (value) => { try { const url = new URL(value); return url.protocol === "https:" ? url.href : "#"; } catch { return "#"; } };
 
 function offlineAnalyze(job, profile) {
   const pageWords = words(`${job.title} ${job.description}`);
@@ -69,15 +71,15 @@ async function render() {
   fragment.querySelector(".company").textContent = `${job.company}${job.location ? ` · ${job.location}` : ""}`;
   fragment.querySelectorAll(".score").forEach((el) => el.textContent = `${result.score}%`);
   fragment.querySelector(".score-note").textContent = result.score > 70 ? "Strong application target" : "Worth a strategic look";
-  fragment.querySelector(".strengths").innerHTML = result.strengths.map((x) => `<li>${x}</li>`).join("");
-  fragment.querySelector(".gaps").innerHTML = result.gaps.map((x) => `<li>${x}</li>`).join("");
+  fragment.querySelector(".strengths").innerHTML = result.strengths.map((x) => `<li>${esc(x)}</li>`).join("");
+  fragment.querySelector(".gaps").innerHTML = result.gaps.map((x) => `<li>${esc(x)}</li>`).join("");
   fragment.querySelector(".recruiter-lens").textContent = result.recruiterLens || result.gaps[0];
-  fragment.querySelector(".proof-map").innerHTML = (result.proofMap || []).map((item) => `<article class="proof ${item.status}"><div><b>${item.requirement}</b><span>${item.status === "proven" ? "Proven" : item.status === "partial" ? "Partial proof" : "Gap"}</span></div><p><strong>Your evidence:</strong> ${item.evidence}</p><p><strong>Likely probe:</strong> ${item.risk}</p><p class="action">→ ${item.nextAction}</p></article>`).join("");
+  fragment.querySelector(".proof-map").innerHTML = (result.proofMap || []).map((item) => `<article class="proof ${item.status === "proven" || item.status === "partial" ? item.status : "gap"}"><div><b>${esc(item.requirement)}</b><span>${item.status === "proven" ? "Proven" : item.status === "partial" ? "Partial proof" : "Gap"}</span></div><p><strong>Your evidence:</strong> ${esc(item.evidence)}</p><p><strong>Likely probe:</strong> ${esc(item.risk)}</p><p class="action">→ ${esc(item.nextAction)}</p></article>`).join("");
   fragment.querySelector(".resume-bullet").textContent = result.bullet;
   if (result.sources?.length) {
     const sources = fragment.querySelector("#sources");
     sources.classList.remove("hidden");
-    sources.querySelector(".source-list").innerHTML = result.sources.map((source) => `<a target="_blank" rel="noreferrer" href="${source.url}"><b>${source.title}</b><span>${source.highlights?.[0] || "Open source"}</span></a>`).join("");
+    sources.querySelector(".source-list").innerHTML = result.sources.map((source) => `<a target="_blank" rel="noreferrer" href="${safeUrl(source.url)}"><b>${esc(source.title)}</b><span>${esc(source.highlights?.[0] || "Open source")}</span></a>`).join("");
   }
   app.replaceChildren(fragment);
   document.querySelector("#save").onclick = () => saveApplication(job, result);

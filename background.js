@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "SAVE_APPLICATION") {
     chrome.storage.local.get("savedApplications").then(({ savedApplications = [] }) => {
       const entry = { ...message.application, id: crypto.randomUUID(), savedAt: Date.now() };
-      chrome.storage.local.set({ savedApplications: [entry, ...savedApplications] }).then(() => sendResponse({ ok: true, entry }));
+      chrome.storage.local.set({ savedApplications: [entry, ...savedApplications], lastSavedApplication: entry }).then(() => sendResponse({ ok: true, entry }));
     });
     return true;
   }
@@ -42,7 +42,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message.type === "OPEN_DASHBOARD") {
-    chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
-    sendResponse({ ok: true });
+    chrome.storage.local.get(["candidateProfile", "currentJob", "lastSavedApplication"]).then(({ candidateProfile = {}, currentJob, lastSavedApplication }) => {
+      const application = lastSavedApplication || (currentJob ? { job: currentJob, result: {} } : null);
+      const imported = application ? { ...application.job, analysis: application.result, result: application.result, sources: application.result?.sources || [] } : null;
+      const origin = (candidateProfile.apiBaseUrl || "https://role-ready-one.vercel.app").replace(/\/$/, "");
+      const encoded = imported ? btoa(unescape(encodeURIComponent(JSON.stringify(imported)))) : "";
+      chrome.tabs.create({ url: `${origin}/${encoded ? `?importJob=${encodeURIComponent(encoded)}` : ""}` });
+      sendResponse({ ok: true });
+    });
+    return true;
   }
 });

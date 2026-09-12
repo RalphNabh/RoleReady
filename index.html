@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#121425">
+    <title>RoleReady — Your evidence-first job companion</title>
+    <link rel="stylesheet" href="app.css">
+  </head>
+  <body>
+    <div id="app" aria-live="polite"></div>
+    <template id="shell-template">
+      <aside class="sidebar">
+        <a class="brand" href="#home"><span>✦</span> RoleReady</a>
+        <p class="workspace">CAREER COMMAND CENTER</p>
+        <nav>
+          <button data-view="home" class="nav active">Overview</button>
+          <button data-view="discover" class="nav">Discover</button>
+          <button data-view="pipeline" class="nav">Pipeline & calendar</button>
+          <button data-view="vault" class="nav">Evidence vault</button>
+        </nav>
+        <div class="sidebar-foot"><p id="auth-status">Loading workspace…</p><button id="auth-button" class="ghost">Sign in with GitHub</button></div>
+      </aside>
+      <main>
+        <header><div><p class="eyebrow" id="header-kicker">EVIDENCE-FIRST CAREER AGENT</p><h1 id="header-title">Your next best move</h1></div><button class="primary" id="primary-action">Add evidence</button></header>
+        <section id="view"></section>
+      </main>
+      <div id="modal-root"></div>
+      <div id="toast" role="status"></div>
+    </template>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

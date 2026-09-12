@@ -1,77 +1,85 @@
 # RoleReady
 
-**A browser-native job-search and interview practice agent.** RoleReady pairs an in-context job-page scout with a persistent Career Command Center. It reads opportunities where candidates already discover them, grounds recommendations in real evidence, and turns an application into an interview-practice plan.
+**An evidence-first job companion for technical interns and new grads.**
 
-Built from scratch at AI Tinkerers, September 12, 2026.
+RoleReady starts where candidates already make decisions: on the job page. Its Chrome extension turns a posting into a truthful Proof Map; its web command center turns that map into a focused application, project sprint, coding assessment, and spoken interview practice.
 
-## Why a browser extension?
+Built solo at AI Tinkerers, September 12, 2026.
 
-The job page is essential context: title, company, requirements, location, and source URL are captured where the candidate already works. RoleReady is not a generic chatbox placed beside a web page; its workflow starts from and reacts to the opportunity the user is actively considering.
+## What works
 
-## Working prototype
+- **Chrome extension:** reads supported LinkedIn, Greenhouse, Lever, and Simplify job pages in context; returns evidence-grounded fit, recruiter lens, Proof Map, cited company intelligence, and a truthful resume angle.
+- **Cloud command center:** GitHub sign-in, verified Evidence Vault, saved jobs, pipeline, calendar, job workspace, and context imported directly from the extension.
+- **Proof Sprints:** turn a visible gap into a small deliverable without inventing credentials.
+- **Assessment room:** original coding exercise in JavaScript, TypeScript, Python, Java, C++, and C#. Submissions run only through a server-side proxy to Piston; raw code is not stored.
+- **Voice interview room:** uses OpenRouter for transcription, adaptive interview feedback, and speech synthesis, with native browser voice as a resilient fallback. Raw audio is not stored.
+- **Company intelligence:** Exa research is displayed with a URL, date, and `Publicly reported` label.
 
-1. Open a supported job post on LinkedIn, Greenhouse, Lever, or Simplify Jobs.
-2. Click the RoleReady extension icon to open the side panel.
-3. Review the evidence-grounded role fit, gaps, and tailored resume angle.
-4. Save the opportunity and start a voice mock interview.
-5. Receive a transcript and structured feedback report.
+## Setup
 
-## Career Command Center
+### 1. Deploy to Vercel
 
-Click the grid icon in the side panel to open the shared-data command center. It includes:
+Import this public GitHub repository into Vercel. Set the project’s root directory to this folder if Vercel asks.
 
-- **Best matches:** opportunities ranked by evidence-grounded fit.
-- **Pipeline:** saved, applied, assessment, interview, and offer stages.
-- **Calendar:** assessment, interview, and follow-up milestones set per job.
-- **Evidence vault:** the candidate facts RoleReady is permitted to use.
-- **Preparation plan:** a truthful application angle, a fast proof-of-work sprint, a role-specific knowledge check, and public research sources.
+### 2. Create Supabase data and GitHub login
 
-The prototype ships with a clearly labelled demo candidate profile. Edit it from **Extension options** before demonstrating your own profile.
+1. Create a Supabase project.
+2. Open **SQL Editor**, paste and run [`supabase/schema.sql`](supabase/schema.sql).
+3. In **Authentication → Providers**, enable GitHub and provide the GitHub OAuth client credentials.
+4. Add your deployed URL as the Supabase Site URL and redirect URL.
+5. In Vercel, add `SUPABASE_URL` and `SUPABASE_ANON_KEY` from Supabase **Project Settings → API**.
 
-### Optional live-agent mode
+The Supabase anon key is a public client identifier; the included row-level-security policies keep each person’s data private.
 
-The extension remains usable without cloud services. To enable live analysis and sourced public interview research, deploy this repository to Vercel and add `OPENROUTER_API_KEY`, `EXA_API_KEY`, and `ALLOWED_EXTENSION_ORIGIN` as server-side environment variables. Set the last value to `chrome-extension://<your Chrome extension ID>`. Then add the deployed URL in Extension options. Never place either key in the extension or commit it to GitHub.
+### 3. Add Vercel environment variables
 
-## Install locally in Chrome
+Copy all variable names from [`.env.example`](.env.example) into **Vercel → Project → Settings → Environment Variables**:
 
-1. Download or clone this repository.
-2. Open `chrome://extensions` and enable **Developer mode**.
-3. Select **Load unpacked** and choose this repository's root folder.
-4. Open a supported job post, then click the RoleReady icon.
-5. Allow microphone access when you start the mock interviewer.
+```text
+OPENROUTER_API_KEY
+EXA_API_KEY
+SUPABASE_URL
+SUPABASE_ANON_KEY
+APP_URL=https://your-project.vercel.app
+ALLOWED_EXTENSION_ORIGIN=chrome-extension://your-extension-id
+```
 
-## Privacy and truthfulness
+Optional audio-model variables have sensible defaults in `.env.example`. Do not commit or paste private keys into the extension.
 
-- Candidate profile data stays in `chrome.storage.local` in this prototype.
-- RoleReady does not submit applications or fabricate credentials.
-- Resume suggestions must be reviewed by the candidate before use.
-- The current prototype is deterministic and offline-first so the full demo works without API keys. Exa-backed source citations and OpenRouter orchestration are the planned live-data integrations.
+### 4. Use the extension
+
+1. Open `chrome://extensions`, enable Developer mode, and **Load unpacked** using this repository folder.
+2. Copy the extension ID.
+3. Add `chrome-extension://<your-id>` as `ALLOWED_EXTENSION_ORIGIN` in Vercel.
+4. In **Extension options**, add your Vercel deployment URL as the live agent URL.
+5. Open a supported job page, open RoleReady, analyze it, save it, and select **Open Command Center**.
+
+The command center receives the saved job context. Sign in with GitHub to persist it to your own Supabase workspace.
+
+## Two-minute demo
+
+1. On a real job page, open the extension and show the Proof Map: Proven, Partial, and Gap—not a generic match score.
+2. Show the Recruiter Lens and Exa-backed, dated company intelligence.
+3. Save the role and open the command center; show the imported job workspace and a Proof Sprint.
+4. Open the six-language assessment and run a short JavaScript or Python solution.
+5. Start the spoken interview; answer one question and show feedback tied to that role’s evidence.
 
 ## Architecture
 
 ```text
-Job-board DOM → content script → shared extension storage → side panel scout
-                                                       ├─ evidence-grounded fit analysis
-                                                       ├─ save application state
-                                                       └─ voice mock interviewer + rubric
-                                                               │
-                                                               ▼
-                                                   Career Command Center
-                                                   ├─ ranked opportunities
-                                                   ├─ application pipeline + calendar
-                                                   └─ preparation plans + knowledge checks
+Job-board DOM → Chrome extension → OpenRouter + Exa analysis
+                                  ↓
+                         RoleReady web command center
+                                  ↓
+        Supabase (GitHub auth, RLS data, private resume storage)
+                                  ↓
+         Assessment proxy → Piston sandbox | Voice → OpenRouter STT/LLM/TTS
 ```
 
-## Demo script
+## Privacy and integrity
 
-Open a job post and say: “RoleReady meets candidates on the page where a decision starts.” Open the side panel, show the fit evidence and truthful tailored bullet, then press **Practice with voice interviewer**. Answer briefly, select **Finish & get feedback**, and show the rubric.
-
-## Roadmap
-
-- Exa: retrieve publicly available company and interview-prep sources with citations.
-- OpenRouter: orchestrate grounded job matching, tailored writing, and adaptive follow-up questions.
-- Companion dashboard: saved applications, feedback history, and a candidate-controlled evidence vault.
-
-## Team
-
-Built solo by [RalphNabh](https://github.com/RalphNabh).
+- No automatic applications or mass autofill.
+- Unconfirmed resume/LinkedIn material cannot become Proof Map evidence.
+- Company/interview research is identified as public reporting, not private company knowledge.
+- Microphone audio is held only for the active transcription request; it is not persisted.
+- The public Piston endpoint is rate-limited and is used only for low-volume hackathon practice. Production should use a dedicated sandbox deployment.
