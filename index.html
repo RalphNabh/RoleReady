@@ -14,14 +14,14 @@
       <div class="landing-page">
         <nav class="landing-nav" aria-label="RoleReady navigation">
           <a class="landing-brand" href="/"><img src="assets/role-ready-mark.svg" alt=""><span>RoleReady</span></a>
-          <div class="landing-nav-actions"><button class="landing-link" id="landing-signin">Sign in</button><button class="landing-cta small" id="landing-demo-top">View live demo <span>↗</span></button></div>
+          <div class="landing-nav-actions"><button class="landing-link" id="landing-extension-top" data-open-extension-install>Chrome extension</button><button class="landing-link" id="landing-signin">Sign in</button><button class="landing-cta small" id="landing-demo-top">View live demo <span>↗</span></button></div>
         </nav>
         <main class="landing-main">
           <section class="landing-hero">
             <p class="landing-kicker"><i></i> THE EVIDENCE-FIRST CAREER AGENT</p>
             <h1>Know what a job will <em>question.</em><br>Before they do.</h1>
             <p class="landing-subtitle">RoleReady lives beside the job post. It maps what you can prove, spots the gaps that matter, and turns your next application into a credible plan.</p>
-            <div class="landing-actions"><button class="landing-cta" id="landing-demo">Watch it analyze a role <span>→</span></button><button class="landing-text-action" id="landing-signin-hero">Build my evidence vault <span>↗</span></button></div>
+            <div class="landing-actions"><button class="landing-cta" id="landing-demo">Watch it analyze a role <span>→</span></button><button class="landing-secondary-cta" id="landing-extension" data-open-extension-install><span class="mini-extension-mark">R</span> Try the Chrome extension</button><button class="landing-text-action" id="landing-signin-hero">Build my evidence vault <span>↗</span></button></div>
             <p class="landing-trust"><span>✦</span> Truth-first recommendations. Your evidence stays yours.</p>
           </section>
           <section class="product-theater" aria-label="RoleReady product demonstration">
@@ -36,7 +36,23 @@
             <div class="theater-caption"><span><i></i> ANALYZING LISTING SNAPSHOT</span><b>Proof Map ready</b><span>Programming · Algorithms · Testing</span></div>
           </section>
           <section class="landing-proof-points"><article><span>01</span><h2>Read the job in context</h2><p>The extension turns the posting in front of you into a concrete evidence map.</p></article><article><span>02</span><h2>See the real questions</h2><p>Recruiter Lens exposes the parts of your story an interviewer will probe.</p></article><article><span>03</span><h2>Build proof, not fiction</h2><p>Proof Sprints create a credible next step before you ever edit a resume bullet.</p></article></section>
+          <section class="extension-bridge" aria-labelledby="extension-bridge-title">
+            <div class="extension-bridge-mark"><img src="assets/role-ready-mark.svg" alt=""></div>
+            <div class="extension-bridge-copy"><p class="extension-bridge-kicker">CHROME EXTENSION · HACKATHON DEMO</p><h2 id="extension-bridge-title">Bring RoleReady to the job page.</h2><p>Open a listing, then let RoleReady turn the text in front of you into a Proof Map, Recruiter Lens, and a focused next move.</p><div class="extension-bridge-actions"><button class="landing-cta" data-open-extension-install>Install demo build <span>→</span></button><a href="https://github.com/RalphNabh/RoleReady" target="_blank" rel="noreferrer">View the source ↗</a></div></div>
+            <div class="extension-bridge-note"><span>DEMO BUILD</span><p>Available as an unpacked Chrome extension while the Chrome Web Store version is in progress.</p></div>
+          </section>
         </main>
+        <div class="extension-install-backdrop" id="extension-install-modal" hidden>
+          <section class="extension-install-dialog" role="dialog" aria-modal="true" aria-labelledby="extension-install-title" tabindex="-1">
+            <button class="extension-install-close" type="button" data-close-extension-install aria-label="Close extension installation steps">×</button>
+            <div class="extension-install-heading"><div class="extension-install-logo"><img src="assets/role-ready-mark.svg" alt=""></div><div><p>ROLE READY FOR CHROME</p><h2 id="extension-install-title">Install the demo build</h2></div></div>
+            <p class="extension-install-intro">RoleReady is currently shared as an open-source hackathon demo. It takes about a minute to add it to Chrome.</p>
+            <div class="extension-install-callout"><b>Developer Mode is required.</b><span>This is not a one-click Chrome Web Store install yet.</span></div>
+            <ol class="extension-install-steps"><li><span>1</span><div><b>Download the project</b><p>Get the current RoleReady build from GitHub and unzip it.</p></div></li><li><span>2</span><div><b>Open Chrome Extensions</b><p>Type <code>chrome://extensions</code> in Chrome, then enable <strong>Developer mode</strong>.</p></div></li><li><span>3</span><div><b>Load the folder</b><p>Choose <strong>Load unpacked</strong> and select the unzipped RoleReady project folder.</p></div></li><li><span>4</span><div><b>Analyze a job page</b><p>Open a job listing and click the RoleReady icon. The demo works locally right away.</p></div></li></ol>
+            <div class="extension-install-actions"><a class="landing-cta" href="https://github.com/RalphNabh/RoleReady/archive/refs/heads/main.zip" target="_blank" rel="noreferrer">Download demo build <span>↓</span></a><a class="extension-source-link" href="https://github.com/RalphNabh/RoleReady" target="_blank" rel="noreferrer">Open GitHub repository ↗</a></div>
+            <p class="extension-install-footer">Want the hosted AI connection too? The repository includes the secure configuration steps for your own extension origin and server URL.</p>
+          </section>
+        </div>
       </div>
     </template>
     <template id="shell-template">

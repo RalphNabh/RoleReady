@@ -91,6 +91,21 @@ function renderLanding() {
   $("#app").replaceChildren($("#landing-template").content.cloneNode(true));
   $("#landing-demo").onclick = () => location.assign(`${location.pathname}?demo=1`);
   $("#landing-demo-top").onclick = () => location.assign(`${location.pathname}?demo=1`);
+  const extensionModal = $("#extension-install-modal");
+  const extensionTriggers = document.querySelectorAll("[data-open-extension-install]");
+  const closeExtensionInstall = () => {
+    extensionModal.hidden = true;
+    document.body.classList.remove("extension-install-open");
+  };
+  const openExtensionInstall = () => {
+    extensionModal.hidden = false;
+    document.body.classList.add("extension-install-open");
+    extensionModal.querySelector(".extension-install-dialog").focus();
+  };
+  extensionTriggers.forEach((trigger) => { trigger.onclick = openExtensionInstall; });
+  extensionModal.querySelector("[data-close-extension-install]").onclick = closeExtensionInstall;
+  extensionModal.onclick = (event) => { if (event.target === extensionModal) closeExtensionInstall(); };
+  extensionModal.onkeydown = (event) => { if (event.key === "Escape") closeExtensionInstall(); };
   const openWorkspace = () => location.assign(`${location.pathname}?workspace=1`);
   if (session) {
     $("#landing-signin").textContent = "Open workspace";
