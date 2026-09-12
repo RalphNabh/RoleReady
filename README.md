@@ -1,6 +1,6 @@
 # RoleReady
 
-**A browser-native job-search and interview practice agent.** RoleReady appears while a candidate is already viewing a job posting, reads the role in context, grounds recommendations in the candidate's real evidence, and turns an application into an interview-practice plan.
+**A browser-native job-search and interview practice agent.** RoleReady pairs an in-context job-page scout with a persistent Career Command Center. It reads opportunities where candidates already discover them, grounds recommendations in real evidence, and turns an application into an interview-practice plan.
 
 Built from scratch at AI Tinkerers, September 12, 2026.
 
@@ -15,6 +15,16 @@ The job page is essential context: title, company, requirements, location, and s
 3. Review the evidence-grounded role fit, gaps, and tailored resume angle.
 4. Save the opportunity and start a voice mock interview.
 5. Receive a transcript and structured feedback report.
+
+## Career Command Center
+
+Click the grid icon in the side panel to open the shared-data command center. It includes:
+
+- **Best matches:** opportunities ranked by evidence-grounded fit.
+- **Pipeline:** saved, applied, assessment, interview, and offer stages.
+- **Calendar:** assessment, interview, and follow-up milestones set per job.
+- **Evidence vault:** the candidate facts RoleReady is permitted to use.
+- **Preparation plan:** a truthful application angle, a fast proof-of-work sprint, a role-specific knowledge check, and public research sources.
 
 The prototype ships with a clearly labelled demo candidate profile. Edit it from **Extension options** before demonstrating your own profile.
 
@@ -40,10 +50,16 @@ The extension remains usable without cloud services. To enable live analysis and
 ## Architecture
 
 ```text
-Job-board DOM → content script → extension storage → side panel agent
-                                                  ├─ evidence-grounded fit analysis
-                                                  ├─ save application state
-                                                  └─ voice mock interviewer + rubric
+Job-board DOM → content script → shared extension storage → side panel scout
+                                                       ├─ evidence-grounded fit analysis
+                                                       ├─ save application state
+                                                       └─ voice mock interviewer + rubric
+                                                               │
+                                                               ▼
+                                                   Career Command Center
+                                                   ├─ ranked opportunities
+                                                   ├─ application pipeline + calendar
+                                                   └─ preparation plans + knowledge checks
 ```
 
 ## Demo script

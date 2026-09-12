@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="dashboard.css"><title>RoleReady Command Center</title></head>
+<body>
+  <aside>
+    <div class="logo"><span>✦</span> RoleReady</div>
+    <p class="workspace">CAREER COMMAND CENTER</p>
+    <nav>
+      <button class="nav active" data-tab="overview">⌂ Overview</button>
+      <button class="nav" data-tab="matches">⌕ Best matches</button>
+      <button class="nav" data-tab="pipeline">↗ Application pipeline</button>
+      <button class="nav" data-tab="calendar">▣ Calendar</button>
+      <button class="nav" data-tab="vault">◈ Evidence vault</button>
+    </nav>
+    <div class="aside-bottom"><button id="open-options">Edit candidate profile</button><p>Truth-first career support.</p></div>
+  </aside>
+  <main>
+    <header><div><p class="eyebrow" id="tab-eyebrow">YOUR NEXT BEST ACTION</p><h1 id="tab-title">Career command center</h1></div><button class="scan" id="scan">✦ Analyze the open job page</button></header>
+    <section id="view"></section>
+  </main>
+  <template id="job-card"><button class="job-card"><div class="fit"></div><div><h3></h3><p class="meta"></p><p class="caption"></p></div><span class="status"></span></button></template>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
   "name": "RoleReady",
   "version": "0.1.0",
   "description": "Your contextual job-search and interview practice agent.",
-  "permissions": ["storage", "sidePanel", "activeTab", "scripting"],
+  "permissions": ["storage", "sidePanel", "activeTab", "scripting", "tabs"],
   "host_permissions": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*", "https://*.vercel.app/*"],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": { "default_title": "Open RoleReady" },

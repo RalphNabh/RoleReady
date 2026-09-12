@@ -34,4 +34,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  if (message.type === "UPDATE_APPLICATION") {
+    chrome.storage.local.get("savedApplications").then(({ savedApplications = [] }) => {
+      const updated = savedApplications.map((entry) => entry.id === message.id ? { ...entry, ...message.changes, updatedAt: Date.now() } : entry);
+      chrome.storage.local.set({ savedApplications: updated }).then(() => sendResponse({ ok: true }));
+    });
+    return true;
+  }
+  if (message.type === "OPEN_DASHBOARD") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
+    sendResponse({ ok: true });
+  }
 });

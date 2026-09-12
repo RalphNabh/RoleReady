@@ -137,4 +137,5 @@ async function finishInterview(job, profile, result) {
 }
 
 document.querySelector("#settings").onclick = () => chrome.runtime.openOptionsPage();
+document.querySelector("#dashboard").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
 chrome.runtime.sendMessage({ type: "GET_CONTEXT" }, (data) => { context = data; render(); });
