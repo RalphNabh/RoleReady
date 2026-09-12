@@ -30,23 +30,43 @@ let state = { profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: 
 let recorder, chunks = [], recognition;
 
 async function setup() {
-  const shell = $("#shell-template").content.cloneNode(true);
-  $("#app").replaceChildren(shell);
   try { config = await fetch("/api/config").then((r) => r.json()); } catch { config = {}; }
   if (config.supabaseUrl && config.supabaseAnonKey) {
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
     supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true } });
     ({ data: { session } } = await supabase.auth.getSession());
-    supabase.auth.onAuthStateChange(async (_event, nextSession) => { session = nextSession; await hydrate(); render(); });
+    supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      session = nextSession;
+      if (!$("#view")) { if (session) location.assign(location.origin); return; }
+      await hydrate();
+      render();
+    });
   }
   const query = new URLSearchParams(location.search);
   if (query.get("importJob")) {
-    try { state.importedJob = fromBase64Json(query.get("importJob")); } catch { toast("The job import link was invalid."); }
+    try { state.importedJob = fromBase64Json(query.get("importJob")); } catch { state.importedJob = null; }
   }
+  if (!session && !demoPresentation && !state.importedJob) { renderLanding(); return; }
   await hydrate();
+  mountWorkspace();
+  if (state.importedJob) openImportedJob();
+}
+
+function mountWorkspace() {
+  document.body.classList.remove("landing-mode");
+  const shell = $("#shell-template").content.cloneNode(true);
+  $("#app").replaceChildren(shell);
   bindShell();
   render();
-  if (state.importedJob) openImportedJob();
+}
+
+function renderLanding() {
+  document.body.classList.add("landing-mode");
+  $("#app").replaceChildren($("#landing-template").content.cloneNode(true));
+  $("#landing-demo").onclick = () => location.assign(`${location.pathname}?demo=1`);
+  $("#landing-demo-top").onclick = () => location.assign(`${location.pathname}?demo=1`);
+  $("#landing-signin").onclick = auth;
+  $("#landing-signin-hero").onclick = auth;
 }
 
 async function hydrate() {
@@ -73,7 +93,7 @@ function bindShell() {
 }
 
 async function auth() {
-  if (!supabase) return toast("Add Supabase public keys in Vercel to enable GitHub sign-in.");
+  if (!supabase) { window.alert("Add Supabase public keys in Vercel to enable GitHub sign-in."); return; }
   if (session) { await supabase.auth.signOut(); return; }
   await supabase.auth.signInWithOAuth({ provider: "github", options: { redirectTo: location.origin } });
 }

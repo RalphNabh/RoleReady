@@ -9,9 +9,38 @@
   </head>
   <body>
     <div id="app" aria-live="polite"></div>
+    <template id="landing-template">
+      <div class="landing-page">
+        <nav class="landing-nav" aria-label="RoleReady navigation">
+          <a class="landing-brand" href="/"><img src="assets/role-ready-mark.svg" alt=""><span>RoleReady</span></a>
+          <div class="landing-nav-actions"><button class="landing-link" id="landing-signin">Sign in</button><button class="landing-cta small" id="landing-demo-top">View live demo <span>↗</span></button></div>
+        </nav>
+        <main class="landing-main">
+          <section class="landing-hero">
+            <p class="landing-kicker"><i></i> THE EVIDENCE-FIRST CAREER AGENT</p>
+            <h1>Know what a job will <em>question.</em><br>Before they do.</h1>
+            <p class="landing-subtitle">RoleReady lives beside the job post. It maps what you can prove, spots the gaps that matter, and turns your next application into a credible plan.</p>
+            <div class="landing-actions"><button class="landing-cta" id="landing-demo">Watch it analyze a role <span>→</span></button><button class="landing-text-action" id="landing-signin-hero">Build my evidence vault <span>↗</span></button></div>
+            <p class="landing-trust"><span>✦</span> Truth-first recommendations. Your evidence stays yours.</p>
+          </section>
+          <section class="product-theater" aria-label="RoleReady product demonstration">
+            <div class="theater-glow"></div>
+            <div class="browser-demo">
+              <div class="browser-bar"><div class="traffic"><i></i><i></i><i></i></div><div class="browser-address"><span>⌕</span> jobs.northstar.com/software-engineering-intern</div><div class="browser-profile">R</div></div>
+              <div class="browser-content">
+                <article class="demo-posting"><div class="posting-company"><span class="northstar-mark">✦</span><div><b>Northstar</b><small>Build the tools that move cities.</small></div></div><p class="demo-label">ENGINEERING · TORONTO, ON</p><h2>Software Engineering<br>Intern</h2><div class="demo-chips"><span>Internship</span><span>Hybrid</span><span>Summer 2027</span></div><hr><p class="demo-section-label">WHAT YOU’LL DO</p><p class="demo-copy">Ship user-facing product features with a small engineering team. Work across React, TypeScript, APIs, and the systems that make data reliable.</p><p class="demo-section-label">WHAT WE’RE LOOKING FOR</p><ul class="demo-requirements"><li><b>React</b><span>Component ownership</span></li><li><b>Backend services</b><span>APIs and data</span></li><li><b>Testing</b><span>Quality mindset</span></li></ul></article>
+                <aside class="demo-extension"><header class="extension-head"><div><img src="assets/role-ready-mark.svg" alt=""><span>RoleReady <small>LIVE CONTEXT</small></span></div><button aria-label="More options">•••</button></header><section class="extension-score"><div><p>EVIDENCE FIT</p><b>84<span>%</span></b><small>Strong application target</small></div><div class="extension-ring">84</div></section><section class="extension-insight"><p>RECRUITER LENS</p><b>Your strongest evidence is relevant.</b><span>They’ll still want a clear testing and ownership story.</span></section><section class="extension-map"><div class="extension-section-head"><p>PROOF MAP</p><span>Truth-first</span></div><div class="extension-row proven"><i>✓</i><div><b>React</b><small>CampusConnect · Proven</small></div></div><div class="extension-row proven"><i>✓</i><div><b>Backend services</b><small>Node.js · Proven</small></div></div><div class="extension-row gap"><i>!</i><div><b>Testing</b><small>Needs evidence · Build a Proof Sprint</small></div></div></section><footer class="extension-foot"><button>View workspace</button><button>Save role</button></footer></aside>
+              </div>
+            </div>
+            <div class="theater-caption"><span><i></i> ANALYZING LIVE JOB CONTEXT</span><b>Proof Map ready</b><span>React · Backend services · Testing</span></div>
+          </section>
+          <section class="landing-proof-points"><article><span>01</span><h2>Read the job in context</h2><p>The extension turns the posting in front of you into a concrete evidence map.</p></article><article><span>02</span><h2>See the real questions</h2><p>Recruiter Lens exposes the parts of your story an interviewer will probe.</p></article><article><span>03</span><h2>Build proof, not fiction</h2><p>Proof Sprints create a credible next step before you ever edit a resume bullet.</p></article></section>
+        </main>
+      </div>
+    </template>
     <template id="shell-template">
       <aside class="sidebar">
-        <a class="brand" href="#home"><span class="brand-mark">R</span><span>RoleReady</span></a>
+        <a class="brand" href="#home"><img class="brand-mark" src="assets/role-ready-mark.svg" alt=""><span>RoleReady</span></a>
         <p class="workspace">YOUR CAREER OS</p>
         <nav>
           <button data-view="home" class="nav active"><span>⌂</span> Today</button>
