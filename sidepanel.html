@@ -2,19 +2,18 @@
 <html lang="en">
   <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="styles.css"><title>RoleReady</title></head>
   <body>
-    <header><div class="brand"><span class="spark">✦</span><span>RoleReady</span></div><div><button id="dashboard" title="Career Command Center">▦</button><button id="settings" title="Candidate profile">⚙</button></div></header>
+    <header><div class="brand"><span class="brand-mark">R</span><div><span>RoleReady</span><small>LIVE JOB CONTEXT</small></div></div><div class="toolbar"><button id="dashboard" title="Career Command Center" aria-label="Open RoleReady workspace">↗</button><button id="settings" title="Candidate profile" aria-label="Edit candidate profile">⚙</button></div></header>
     <main id="app"><section class="loading"><div class="pulse"></div><p>Reading this opportunity…</p></section></main>
     <template id="job-template">
-      <section class="hero"><p class="eyebrow">LIVE JOB CONTEXT</p><h1 class="job-title"></h1><p class="company"></p></section>
-      <section class="score-card"><div><p class="label">ROLE FIT</p><strong class="score"></strong><span class="score-note"></span></div><div class="ring"><span class="score"></span></div></section>
-      <section><h2>Why you’re a fit</h2><ul class="strengths"></ul></section>
-      <section><h2>Close these gaps</h2><ul class="gaps"></ul></section>
+      <section class="hero"><p class="eyebrow">ROLE DETECTED</p><h1 class="job-title"></h1><p class="company"></p></section>
+      <section class="score-card"><div><p class="label">EVIDENCE FIT</p><strong class="score"></strong><span class="score-note"></span></div><div class="ring"><span class="score"></span></div></section>
+      <section class="insight strengths-wrap"><p class="eyebrow">ALREADY PROVEN</p><h2>Why this is a credible fit</h2><ul class="strengths"></ul></section>
+      <section class="insight gaps-wrap"><p class="eyebrow">CLOSE THE GAP</p><h2>What to strengthen first</h2><ul class="gaps"></ul></section>
       <section class="lens"><p class="eyebrow">RECRUITER LENS</p><h2>What they may question</h2><p class="recruiter-lens"></p></section>
       <section><div class="section-heading"><div><p class="eyebrow">PROOF MAP</p><h2>Requirement-to-evidence map</h2></div><span>Truth-first</span></div><div class="proof-map"></div></section>
-      <section class="resume"><div class="section-heading"><h2>Tailored resume angle</h2><span>Truth-first</span></div><p class="resume-bullet"></p></section>
+      <section class="resume"><div class="section-heading"><h2>Truthful application angle</h2><span>Evidence only</span></div><p class="resume-bullet"></p></section>
       <section class="sources hidden" id="sources"><div class="section-heading"><h2>Company intelligence</h2><span>Public sources</span></div><div class="source-list"></div></section>
-      <button class="primary" id="save">Save application & build prep plan</button>
-      <button class="secondary" id="command-center">Open in Career Command Center →</button>
+      <div class="sticky-actions"><button class="secondary" id="command-center">View workspace</button><button class="primary" id="save">Save role</button></div>
     </template>
     <script type="module" src="sidepanel.js"></script>
   </body>
