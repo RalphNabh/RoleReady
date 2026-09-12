@@ -60,7 +60,7 @@ async function openRouter(messages, responseFormat) {
 
 async function research(company, title) {
   if (!process.env.EXA_API_KEY) return [];
-  const query = `public interview experience and interview preparation for ${company} ${title}`;
+  const query = `${company} engineering culture early career recruiting internships university hackathon sponsorship recent news`;
   const response = await fetch("https://api.exa.ai/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": process.env.EXA_API_KEY },
@@ -84,9 +84,10 @@ const analysisSchema = {
         strengths: { type: "array", items: { type: "string" } },
         gaps: { type: "array", items: { type: "string" } },
         resumeBullet: { type: "string" },
-        interviewQuestion: { type: "string" }
+        recruiterLens: { type: "string" },
+        proofMap: { type: "array", items: { type: "object", properties: { requirement: { type: "string" }, evidence: { type: "string" }, status: { type: "string", enum: ["proven", "partial", "gap"] }, risk: { type: "string" }, nextAction: { type: "string" } }, required: ["requirement", "evidence", "status", "risk", "nextAction"], additionalProperties: false } }
       },
-      required: ["score", "scoreNote", "strengths", "gaps", "resumeBullet", "interviewQuestion"],
+      required: ["score", "scoreNote", "strengths", "gaps", "resumeBullet", "recruiterLens", "proofMap"],
       additionalProperties: false
     }
   }
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
 
     if (action === "analyze") {
       const analysis = await openRouter([
-        { role: "system", content: "You are RoleReady, a rigorous job-search agent. Evaluate ONLY the candidate facts supplied. Never invent skills, achievements, metrics, education, or company facts. Give a calibrated fit score and constructive gaps. The resume bullet must only restate candidate evidence with clearer relevance. Return JSON matching the schema." },
+        { role: "system", content: "You are RoleReady, a rigorous job-search agent. Evaluate ONLY the candidate facts supplied. Never invent skills, achievements, metrics, education, or company facts. Give a calibrated fit score and constructive gaps. The resume bullet must only restate candidate evidence with clearer relevance. Build a Proof Map: map exact job requirements to evidence, explicitly label gaps, say what a recruiter or interviewer would probe, and give one concrete honest action. recruiterLens should summarize the most important concern in the first 10-second recruiter review. Return JSON matching the schema." },
         { role: "user", content: JSON.stringify({ candidateFacts: facts, job: normalizedJob }) }
       ], analysisSchema);
       const sources = await research(normalizedJob.company, normalizedJob.title);

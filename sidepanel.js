@@ -27,7 +27,12 @@ function offlineAnalyze(job, profile) {
   const bullet = project
     ? `Built ${project.name}, a ${project.summary.replace(/^Built |^Created /, "").replace(/\.$/, "")}; applied ${project.skills.slice(0, 3).join(", ")} to deliver a user-focused product.`
     : "Add one truthful project bullet that mirrors the job’s most important technical requirement.";
-  return { score, strengths, gaps, bullet, matched };
+  const proofMap = [
+    ...matched.slice(0, 2).map((skill) => ({ requirement: skill, evidence: `Your saved profile lists ${skill}.`, status: "proven", risk: `Expect a concrete ${skill} example.`, nextAction: "Prepare a 60-second ownership-and-impact story." })),
+    { requirement: "Role-specific evidence", evidence: "No direct proof captured from the job page yet.", status: "partial", risk: "A reviewer may ask how your past work transfers to this exact role.", nextAction: "Connect one project outcome to the company’s product or user problem." },
+    { requirement: "Testing or production quality", evidence: "No testing evidence is currently saved.", status: "gap", risk: "An interviewer may probe reliability and engineering judgment.", nextAction: "Add a small tested feature to an existing project before applying." }
+  ].slice(0, 4);
+  return { score, strengths, gaps, bullet, matched, proofMap, recruiterLens: proofMap.find((item) => item.status !== "proven")?.risk || "Your strongest evidence is relevant; lead with concrete results." };
 }
 
 async function analyze(job, profile) {
@@ -66,6 +71,8 @@ async function render() {
   fragment.querySelector(".score-note").textContent = result.score > 70 ? "Strong application target" : "Worth a strategic look";
   fragment.querySelector(".strengths").innerHTML = result.strengths.map((x) => `<li>${x}</li>`).join("");
   fragment.querySelector(".gaps").innerHTML = result.gaps.map((x) => `<li>${x}</li>`).join("");
+  fragment.querySelector(".recruiter-lens").textContent = result.recruiterLens || result.gaps[0];
+  fragment.querySelector(".proof-map").innerHTML = (result.proofMap || []).map((item) => `<article class="proof ${item.status}"><div><b>${item.requirement}</b><span>${item.status === "proven" ? "Proven" : item.status === "partial" ? "Partial proof" : "Gap"}</span></div><p><strong>Your evidence:</strong> ${item.evidence}</p><p><strong>Likely probe:</strong> ${item.risk}</p><p class="action">→ ${item.nextAction}</p></article>`).join("");
   fragment.querySelector(".resume-bullet").textContent = result.bullet;
   if (result.sources?.length) {
     const sources = fragment.querySelector("#sources");
@@ -74,7 +81,7 @@ async function render() {
   }
   app.replaceChildren(fragment);
   document.querySelector("#save").onclick = () => saveApplication(job, result);
-  document.querySelector("#practice").onclick = () => showPractice(job, profile, result);
+  document.querySelector("#command-center").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
 }
 
 function saveApplication(job, result) {
