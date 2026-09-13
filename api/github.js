@@ -1,4 +1,4 @@
-import { allow, allowedOrigin, clean, json, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, verifiedUser } from "../lib/server.js";
 
 function githubHeaders() {
   return { Accept: "application/vnd.github+json", "User-Agent": "RoleReady evidence import" };

@@ -1,4 +1,4 @@
-import { allow, allowedOrigin, clean, json, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, verifiedUser } from "../lib/server.js";
 
 const MAX_AUDIO_CHARS = 4_500_000;
 

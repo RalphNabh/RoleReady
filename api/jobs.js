@@ -1,4 +1,4 @@
-import { allow, allowedOrigin, clean, json, safeHttpUrl, userRest, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, safeHttpUrl, userRest, verifiedUser } from "../lib/server.js";
 
 const SIMPLIFY_README = "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/README.md";
 const cache = { expiresAt: 0, roles: [] };

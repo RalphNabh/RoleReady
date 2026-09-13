@@ -1,4 +1,4 @@
-import { adminRest, clean, json, requireCron } from "./shared.js";
+import { adminRest, clean, json, requireCron } from "../lib/server.js";
 
 function dateKey(value) { return new Date(value).toISOString().slice(0, 10); }
 

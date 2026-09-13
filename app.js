@@ -36,7 +36,7 @@ let state = {
 };
 
 async function setup() {
-  try { config = await fetch("/api/config").then((response) => response.json()); } catch { config = {}; }
+  try { config = await fetch("/api/agent?config=1").then((response) => response.json()); } catch { config = {}; }
   if (config.supabaseUrl && config.supabaseAnonKey) {
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
     supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true } });

@@ -1,5 +1,5 @@
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
-import { allow, allowedOrigin, clean, json, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, verifiedUser } from "../lib/server.js";
 
 function paragraph(text, options = {}) {
   return new Paragraph({ children: [new TextRun({ text: clean(text, 1500), ...options })], spacing: { after: 100 } });

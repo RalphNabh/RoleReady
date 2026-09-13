@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { allow, allowedOrigin, clean, json, userRest, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, userRest, verifiedUser } from "../lib/server.js";
 
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 

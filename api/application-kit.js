@@ -1,4 +1,4 @@
-import { allow, allowedOrigin, clean, json, userRest, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, userRest, verifiedUser } from "../lib/server.js";
 
 function headers() {
   return {

@@ -1,4 +1,4 @@
-import { allow, allowedOrigin, clean, json, userRest, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, userRest, verifiedUser } from "../lib/server.js";
 
 function headers() { return { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, "Content-Type": "application/json", "HTTP-Referer": process.env.APP_URL || "https://github.com/RalphNabh/RoleReady", "X-OpenRouter-Title": "RoleReady" }; }
 function keyTerms(value = "") { return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter((term) => term.length > 2).slice(0, 30); }

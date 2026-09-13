@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { adminRest } from "./shared.js";
+import { adminRest } from "../lib/server.js";
 
 const MAX_BODY_BYTES = 45_000;
 
@@ -121,6 +121,15 @@ const analysisSchema = {
 };
 
 export default async function handler(req, res) {
+  if (req.method === "GET" && req.query?.config === "1") {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    return json(res, 200, {
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      // The anonymous key identifies this public client; Supabase RLS protects data.
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+      appUrl: process.env.APP_URL || ""
+    });
+  }
   if (!setCors(req, res)) return json(res, 403, { error: "This request origin is not allowed." });
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return json(res, 405, { error: "POST only" });

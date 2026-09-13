@@ -1,5 +1,5 @@
 import { CHALLENGES, runnerSource, testPasses } from "../shared/challenges.js";
-import { allow, allowedOrigin, clean, json, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, verifiedUser } from "../lib/server.js";
 
 const LANGUAGES = {
   javascript: { runtime: "javascript", file: "main.js" },

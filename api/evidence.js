@@ -1,6 +1,6 @@
 import mammoth from "mammoth";
 import pdf from "pdf-parse";
-import { allow, allowedOrigin, clean, json, verifiedUser } from "./shared.js";
+import { allow, allowedOrigin, clean, json, verifiedUser } from "../lib/server.js";
 
 const MAX_FILE_BYTES = 5_000_000;
 
