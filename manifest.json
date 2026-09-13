@@ -3,10 +3,24 @@
   "name": "RoleReady",
   "version": "0.2.0",
   "description": "Evidence-first job analysis beside supported job postings.",
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
   "permissions": ["storage", "sidePanel", "activeTab", "scripting", "tabs"],
   "host_permissions": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*", "https://*.google.com/*", "https://*.vercel.app/*"],
   "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_title": "Open RoleReady" },
+  "action": {
+    "default_title": "Open RoleReady",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "32": "assets/icon32.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
   "side_panel": { "default_path": "sidepanel.html" },
   "options_page": "options.html",
   "content_scripts": [

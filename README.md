@@ -90,4 +90,4 @@ Job-board DOM → Chrome extension → paired extension key → OpenRouter + Exa
 - Company/interview research is identified as public reporting, not private company knowledge.
 - Microphone audio is held only for the active transcription request; it is not persisted.
 - The public Piston endpoint is rate-limited and is used only for low-volume hackathon practice. Production should use a dedicated sandbox deployment.
-- Chrome Web Store release: package this extension as version `0.2.0`, create the store listing and privacy disclosures, then set `ALLOWED_EXTENSION_ORIGIN` to the final store extension ID before enabling live analysis for others.
+- Chrome Web Store release: use `npm run package:extension` to create `dist/roleready-chrome-extension.zip`. Its static listing icon assets live in `assets/icon16.png`, `assets/icon48.png`, and `assets/icon128.png`; host the included [`privacy.html`](privacy.html) as the listing’s privacy-policy URL. Set `ALLOWED_EXTENSION_ORIGIN` to the final store extension ID before enabling live analysis for others.

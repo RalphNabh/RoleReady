@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "check": "node --check api/agent.js && node --check api/application-kit.js && node --check api/assessment.js && node --check api/evidence.js && node --check api/export.js && node --check api/extension.js && node --check api/github.js && node --check api/jobs.js && node --check api/og.js && node --check api/reminders.js && node --check api/role.js && node --check api/voice.js && node --check lib/server.js && node --check shared/challenges.js && node --check background.js && node --check content.js && node --check sidepanel.js && node --check options.js && node --check app.js"
+    "check": "node --check api/agent.js && node --check api/application-kit.js && node --check api/assessment.js && node --check api/evidence.js && node --check api/export.js && node --check api/extension.js && node --check api/github.js && node --check api/jobs.js && node --check api/og.js && node --check api/reminders.js && node --check api/role.js && node --check api/voice.js && node --check lib/server.js && node --check shared/challenges.js && node --check background.js && node --check content.js && node --check sidepanel.js && node --check options.js && node --check app.js",
+    "package:extension": "rm -f dist/roleready-chrome-extension.zip && mkdir -p dist && zip -r dist/roleready-chrome-extension.zip manifest.json background.js content.js sidepanel.html sidepanel.js options.html options.js styles.css assets/icon16.png assets/icon32.png assets/icon48.png assets/icon128.png assets/role-ready-mark.svg -x '*.DS_Store'"
   },
   "dependencies": {
     "@vercel/og": "^0.8.5",

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#121425">
+    <title>RoleReady Privacy</title>
+    <link rel="icon" href="assets/role-ready-mark.svg" type="image/svg+xml">
+    <style>
+      :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f7f9fc; }
+      body { max-width: 760px; margin: 0 auto; padding: 56px 24px 80px; line-height: 1.65; }
+      header { display: flex; align-items: center; gap: 12px; margin-bottom: 38px; }
+      header img { width: 42px; height: 42px; } h1 { font-size: 2.2rem; line-height: 1.1; margin: 0; }
+      h2 { margin-top: 32px; font-size: 1.2rem; } .updated { color: #667085; margin: 6px 0 0; }
+      .callout { padding: 16px 18px; border: 1px solid #d9e3f5; border-radius: 12px; background: #edf4ff; }
+      a { color: #2168d6; } li { margin: 7px 0; }
+    </style>
+  </head>
+  <body>
+    <header><img src="assets/role-ready-mark.svg" alt=""><div><h1>RoleReady Privacy</h1><p class="updated">Last updated September 13, 2026</p></div></header>
+    <p class="callout"><strong>RoleReady is an evidence-first job companion.</strong> It does not submit applications, scrape LinkedIn profiles, sell personal data, or train public models on a user’s private materials.</p>
+    <h2>What the Chrome extension reads</h2>
+    <p>On a supported job page, the extension reads the job-posting text and structured JobPosting data that is already visible in the page. It uses that context to build a Proof Map. The extension does not read unrelated browsing pages.</p>
+    <h2>What is stored</h2>
+    <ul>
+      <li>Role and pipeline details a signed-in user chooses to save.</li>
+      <li>User-approved evidence such as projects and experience. Resume and LinkedIn-export imports are suggestions until approved.</li>
+      <li>Optional Proof Sprint, milestone, application-kit, assessment-result summary, and interview-scorecard data.</li>
+    </ul>
+    <p>Raw assessment code is sent only to the execution provider and is not stored by RoleReady. Microphone audio is used only for the active transcription request and is not stored by default. A transcript or scorecard is saved only if the user opts in.</p>
+    <h2>Connected services</h2>
+    <p>RoleReady uses Supabase for authentication and private per-user records. When a user requests AI analysis, relevant approved evidence and selected job context may be sent to OpenRouter. Public company-resource searches may use Exa. Coding practice may send submitted code to Piston for execution. Optional deadline emails use Resend.</p>
+    <h2>Control and deletion</h2>
+    <p>Users control what becomes confirmed evidence and may delete their saved data from their RoleReady workspace. To request account-data help, open an issue in the <a href="https://github.com/RalphNabh/RoleReady">RoleReady GitHub repository</a>.</p>
+    <h2>Contact</h2>
+    <p>RoleReady is an open-source AI Tinkerers project. Questions can be submitted through the project repository.</p>
+  </body>
+</html>
