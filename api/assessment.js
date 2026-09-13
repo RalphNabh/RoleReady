@@ -1,4 +1,5 @@
-import { CHALLENGES, runnerSource, testPasses } from "../shared/challenges.js";
+import { CHALLENGES } from "../shared/challenges.js";
+import { ASSESSMENT_TESTS, runnerSource, testPasses } from "../lib/assessment-tests.js";
 import { allow, allowedOrigin, clean, json, verifiedUser } from "../lib/server.js";
 
 const LANGUAGES = {
@@ -31,11 +32,12 @@ export default async function handler(req, res) {
   const language = clean(req.body?.language, 30);
   const code = clean(req.body?.code, 30_000);
   const challenge = CHALLENGES[clean(req.body?.challengeId, 60)];
+  const tests = challenge ? ASSESSMENT_TESTS[challenge.id] : null;
   const selected = LANGUAGES[language];
-  if (!selected || !challenge || !code) return json(res, 400, { error: "Choose a supported language, challenge, and solution." });
+  if (!selected || !challenge || !tests || !code) return json(res, 400, { error: "Choose a supported language, challenge, and solution." });
   const results = [];
   try {
-    for (const test of challenge.tests) {
+    for (const test of tests) {
       const execution = await execute(selected, runnerSource(challenge, language, code, test));
       if (!execution.compiled || execution.exitCode !== 0) {
         return json(res, 200, { passed: false, output: execution.output || "Your program did not finish successfully.", hiddenSummary: "Compilation/runtime feedback shown. Hidden test values remain private.", feedback: { kind: "runtime", nextStep: "Fix the compiler or runtime message, then retry." } });
