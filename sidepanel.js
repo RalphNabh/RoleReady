@@ -42,7 +42,7 @@ async function analyze(job, profile = {}) {
   if (!profile.apiBaseUrl) return { ...offlineAnalyze(job, profile), mode: "offline", sources: [] };
   try {
     const response = await fetch(`${profile.apiBaseUrl.replace(/\/$/, "")}/api/agent`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "analyze", job, profile })
+      method: "POST", headers: { "Content-Type": "application/json", ...(profile.connectionToken ? { "X-RoleReady-Extension": profile.connectionToken } : {}) }, body: JSON.stringify({ action: "analyze", job, profile })
     });
     if (!response.ok) throw new Error("Live agent unavailable");
     const { analysis, sources } = await response.json();
@@ -75,16 +75,17 @@ async function render() {
   fragment.querySelector(".strengths").innerHTML = result.strengths.map((x) => `<li>${esc(x)}</li>`).join("");
   fragment.querySelector(".gaps").innerHTML = result.gaps.map((x) => `<li>${esc(x)}</li>`).join("");
   fragment.querySelector(".recruiter-lens").textContent = result.recruiterLens || result.gaps[0];
-  fragment.querySelector(".proof-map").innerHTML = (result.proofMap || []).map((item) => `<article class="proof ${item.status === "proven" || item.status === "partial" ? item.status : "gap"}"><div><b>${esc(item.requirement)}</b><span>${item.status === "proven" ? "Proven" : item.status === "partial" ? "Partial proof" : "Gap"}</span></div><p><strong>Your evidence:</strong> ${esc(item.evidence)}</p><p><strong>Likely probe:</strong> ${esc(item.risk)}</p><p class="action">→ ${esc(item.nextAction)}</p></article>`).join("");
+  fragment.querySelector(".proof-map").innerHTML = (result.proofMap || []).map((item) => `<article class="proof ${item.status === "proven" || item.status === "partial" ? item.status : "gap"}"><div><b>${esc(item.requirement)}</b><span>${item.status === "proven" ? "Proven" : item.status === "partial" ? "Partial proof" : "Gap"}</span></div><p><strong>Your evidence:</strong> ${esc(item.evidence)}</p><p><strong>Likely probe:</strong> ${esc(item.risk)}</p><p class="action">→ ${esc(item.nextAction)}</p><button class="anchor-link" data-requirement="${esc(item.requirement)}">Find it on this page</button></article>`).join("");
   fragment.querySelector(".resume-bullet").textContent = result.bullet;
   if (result.sources?.length) {
     const sources = fragment.querySelector("#sources");
     sources.classList.remove("hidden");
-    sources.querySelector(".source-list").innerHTML = result.sources.map((source) => `<a target="_blank" rel="noreferrer" href="${safeUrl(source.url)}"><b>${esc(source.title)}</b><span>${esc(source.highlights?.[0] || "Open source")}</span></a>`).join("");
+    sources.querySelector(".source-list").innerHTML = result.sources.map((source) => `<a target="_blank" rel="noreferrer" href="${safeUrl(source.url)}"><b>${esc(source.title)}</b><span>${esc(source.label || "Publicly reported")} · ${esc(source.date || "Retrieved today")}</span><span>${esc(source.highlights?.[0] || "Open source")}</span></a>`).join("");
   }
   app.replaceChildren(fragment);
   document.querySelector("#save").onclick = () => saveApplication(job, result);
   document.querySelector("#command-center").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+  document.querySelectorAll("[data-requirement]").forEach((button) => button.onclick = () => chrome.runtime.sendMessage({ type: "HIGHLIGHT_REQUIREMENT", requirement: button.dataset.requirement }));
 }
 
 function saveApplication(job, result) {

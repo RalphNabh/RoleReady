@@ -2,6 +2,11 @@
   "functions": {
     "api/agent.js": { "maxDuration": 30 },
     "api/assessment.js": { "maxDuration": 30 },
-    "api/voice.js": { "maxDuration": 30 }
-  }
+    "api/voice.js": { "maxDuration": 30 },
+    "api/role.js": { "maxDuration": 30 },
+    "api/evidence.js": { "maxDuration": 30 }
+  },
+  "crons": [
+    { "path": "/api/reminders", "schedule": "0 13 * * *" }
+  ]
 }

@@ -8,12 +8,13 @@ Built solo at AI Tinkerers, September 12, 2026.
 
 ## What works
 
-- **Chrome extension:** reads supported LinkedIn, Greenhouse, Lever, and Simplify job pages in context; returns evidence-grounded fit, recruiter lens, Proof Map, cited company intelligence, and a truthful resume angle.
-- **Cloud command center:** GitHub sign-in, verified Evidence Vault, saved jobs, pipeline, calendar, job workspace, and context imported directly from the extension.
-- **Proof Sprints:** turn a visible gap into a small deliverable without inventing credentials.
-- **Assessment room:** original coding exercise in JavaScript, TypeScript, Python, Java, C++, and C#. Submissions run only through a server-side proxy to Piston; raw code is not stored.
-- **Voice interview room:** uses OpenRouter for transcription, adaptive interview feedback, and speech synthesis, with native browser voice as a resilient fallback. Raw audio is not stored.
-- **Company intelligence:** Exa research is displayed with a URL, date, and `Publicly reported` label.
+- **Chrome extension:** reads supported LinkedIn, Greenhouse, Lever, Simplify, and Google Careers pages in context. Structured `JobPosting` data is preferred when present; Proof Map requirements can jump back to the matching page text.
+- **Evidence Vault:** users privately upload PDF/DOCX/TXT/LinkedIn CSV files or select public GitHub repositories. RoleReady proposes claims, but only user-approved items become evidence.
+- **Sourced discovery:** the public Simplify tracker is ranked against confirmed evidence. Users can also connect official public Greenhouse and Lever job boards, with source and freshness labels.
+- **Role workspace:** persistent pipeline, real milestones, Proof Sprints, source-ranked Company Intelligence, and a customizable truthful Application Studio with print-to-PDF and DOCX export.
+- **Assessment room:** an adaptive three-challenge original practice set in JavaScript, TypeScript, Python, Java, C++, and C#. Hidden Piston checks run server-side; RoleReady stores result summaries, never raw code.
+- **Interview meeting:** an animated, voice-led four-turn interview with an optional local-only camera preview, transient audio, typed fallback, and an opt-in private scorecard.
+- **Reminders:** optional Resend emails 3 days, 1 day, and the morning of a milestone; duplicate deliveries are prevented.
 
 ## Setup
 
@@ -40,8 +41,12 @@ OPENROUTER_API_KEY
 EXA_API_KEY
 SUPABASE_URL
 SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
 APP_URL=https://your-project.vercel.app
 ALLOWED_EXTENSION_ORIGIN=chrome-extension://your-extension-id
+RESEND_API_KEY
+REMINDER_FROM=RoleReady <reminders@your-domain.com>
+CRON_SECRET
 ```
 
 Optional audio-model variables have sensible defaults in `.env.example`. Do not commit or paste private keys into the extension.
@@ -51,8 +56,9 @@ Optional audio-model variables have sensible defaults in `.env.example`. Do not 
 1. Open `chrome://extensions`, enable Developer mode, and **Load unpacked** using this repository folder.
 2. Copy the extension ID.
 3. Add `chrome-extension://<your-id>` as `ALLOWED_EXTENSION_ORIGIN` in Vercel.
-4. In **Extension options**, add your Vercel deployment URL as the live agent URL.
-5. Open a supported job page, open RoleReady, analyze it, save it, and select **Open Command Center**.
+4. In the signed-in web app, open **Evidence Vault → Connect Chrome** and generate a one-time workspace connection key.
+5. In **Extension options**, add your Vercel deployment URL and paste that key. The extension then analyzes roles against only your confirmed cloud evidence.
+6. Open a supported job page, open RoleReady, analyze it, save it, and select **Open Command Center**.
 
 The command center receives the saved job context. Sign in with GitHub to persist it to your own Supabase workspace.
 
@@ -61,19 +67,20 @@ The command center receives the saved job context. Sign in with GitHub to persis
 1. On a real job page, open the extension and show the Proof Map: Proven, Partial, and Gap—not a generic match score.
 2. Show the Recruiter Lens and Exa-backed, dated company intelligence.
 3. Save the role and open the command center; show the imported job workspace and a Proof Sprint.
-4. Open the six-language assessment and run a short JavaScript or Python solution.
-5. Start the spoken interview; answer one question and show feedback tied to that role’s evidence.
+4. Open the Application Studio, select verified evidence, and export a reviewed application kit.
+5. Open the six-language assessment and run a short JavaScript or Python solution through hidden checks.
+6. Join the four-turn interview meeting; show a role-aware question and final scorecard.
 
 ## Architecture
 
 ```text
-Job-board DOM → Chrome extension → OpenRouter + Exa analysis
-                                  ↓
-                         RoleReady web command center
-                                  ↓
-        Supabase (GitHub auth, RLS data, private resume storage)
-                                  ↓
-         Assessment proxy → Piston sandbox | Voice → OpenRouter STT/LLM/TTS
+Job-board DOM → Chrome extension → paired extension key → OpenRouter + Exa analysis
+                                                           ↓
+             Simplify tracker / official Greenhouse / Lever → RoleReady web command center
+                                                           ↓
+     Supabase (GitHub auth, RLS data, approved evidence, private resume storage)
+                                                           ↓
+    Assessment proxy → Piston sandbox | Voice → OpenRouter STT/LLM/TTS | Email → Resend
 ```
 
 ## Privacy and integrity
@@ -83,3 +90,4 @@ Job-board DOM → Chrome extension → OpenRouter + Exa analysis
 - Company/interview research is identified as public reporting, not private company knowledge.
 - Microphone audio is held only for the active transcription request; it is not persisted.
 - The public Piston endpoint is rate-limited and is used only for low-volume hackathon practice. Production should use a dedicated sandbox deployment.
+- Chrome Web Store release: package this extension as version `0.2.0`, create the store listing and privacy disclosures, then set `ALLOWED_EXTENSION_ORIGIN` to the final store extension ID before enabling live analysis for others.

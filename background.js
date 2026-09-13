@@ -68,7 +68,7 @@ applyRoleReadyIcon().catch(() => { /* The default browser letter is an acceptabl
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "JOB_CONTEXT") {
-    chrome.storage.local.set({ currentJob: { ...message.job, capturedAt: Date.now(), sourceUrl: sender.tab?.url || message.job.sourceUrl } });
+    chrome.storage.local.set({ currentJob: { ...message.job, capturedAt: Date.now(), sourceUrl: sender.tab?.url || message.job.sourceUrl, tabId: sender.tab?.id } });
     sendResponse({ ok: true });
   }
   if (message.type === "GET_CONTEXT") {
@@ -96,6 +96,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const origin = (candidateProfile.apiBaseUrl || "https://role-ready-one.vercel.app").replace(/\/$/, "");
       const encoded = imported ? btoa(unescape(encodeURIComponent(JSON.stringify(imported)))) : "";
       chrome.tabs.create({ url: `${origin}/${encoded ? `?importJob=${encodeURIComponent(encoded)}` : ""}` });
+      sendResponse({ ok: true });
+    });
+    return true;
+  }
+  if (message.type === "HIGHLIGHT_REQUIREMENT") {
+    chrome.storage.local.get("currentJob").then(({ currentJob }) => {
+      if (currentJob?.tabId) chrome.tabs.sendMessage(currentJob.tabId, { type: "HIGHLIGHT_REQUIREMENT", requirement: message.requirement }).catch(() => {});
       sendResponse({ ok: true });
     });
     return true;

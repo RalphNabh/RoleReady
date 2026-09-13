@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import { adminRest } from "./shared.js";
+
 const MAX_BODY_BYTES = 45_000;
 
 function json(res, status, body) {
@@ -21,6 +24,29 @@ function setCors(req, res) {
 
 function safeText(value, limit = 9000) {
   return typeof value === "string" ? value.replace(/\0/g, "").slice(0, limit) : "";
+}
+
+function tokenHash(value) { return createHash("sha256").update(value).digest("hex"); }
+
+async function extensionUser(req) {
+  const token = safeText(req.headers["x-roleready-extension"], 300);
+  if (!token || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  try {
+    const response = await adminRest(`extension_connections?token_hash=eq.${encodeURIComponent(tokenHash(token))}&select=user_id&limit=1`);
+    const rows = response.ok ? await response.json() : [];
+    return rows[0]?.user_id || null;
+  } catch { return null; }
+}
+
+async function verifiedCandidate(userId) {
+  if (!userId) return null;
+  const [profileResponse, evidenceResponse] = await Promise.all([
+    adminRest(`profiles?id=eq.${encodeURIComponent(userId)}&select=*&limit=1`),
+    adminRest(`candidate_evidence?user_id=eq.${encodeURIComponent(userId)}&confirmed=eq.true&select=*&order=created_at.desc`)
+  ]);
+  const profile = profileResponse.ok ? (await profileResponse.json())[0] || {} : {};
+  const evidence = evidenceResponse.ok ? await evidenceResponse.json() : [];
+  return candidateFacts({ name: profile.full_name, targetRole: profile.target_role, skills: profile.skills, projects: evidence.filter((item) => item.kind === "project").map((item) => ({ name: item.title, summary: item.details, skills: [] })), experiences: evidence.filter((item) => item.kind !== "project").map((item) => `${item.title}: ${item.details}`) });
 }
 
 function candidateFacts(profile = {}) {
@@ -102,7 +128,10 @@ export default async function handler(req, res) {
 
   try {
     const { action, job = {}, profile = {}, answer = "", previousQuestion = "" } = req.body || {};
-    const facts = candidateFacts(profile);
+    const userId = await extensionUser(req);
+    if (!userId) return json(res, 401, { error: "Connect this extension to your RoleReady workspace before using live analysis." });
+    const facts = await verifiedCandidate(userId);
+    if (!facts) return json(res, 401, { error: "RoleReady could not load your confirmed evidence." });
     const normalizedJob = { title: safeText(job.title, 220), company: safeText(job.company, 220), description: safeText(job.description, 11000), location: safeText(job.location, 220) };
     if (!normalizedJob.title || !normalizedJob.description) return json(res, 400, { error: "A job title and description are required." });
 
