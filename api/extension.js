@@ -9,9 +9,16 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "POST only" });
   const auth = await verifiedUser(req);
   if (!auth) return json(res, 401, { error: "Sign in before connecting an extension." });
-  if (!allow(`extension:${auth.user.id}`, 6)) return json(res, 429, { error: "Please wait before creating another extension key." });
   const action = clean(req.body?.action, 30);
+  if (action === "revoke") {
+    const id = clean(req.body?.id, 80);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return json(res, 400, { error: "Choose a valid extension connection." });
+    const response = await userRest(`extension_connections?id=eq.${encodeURIComponent(id)}`, auth.token, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+    if (!response.ok) return json(res, 500, { error: "The extension connection could not be revoked." });
+    return json(res, 200, { ok: true });
+  }
   if (action !== "create") return json(res, 400, { error: "Unknown extension action." });
+  if (!allow(`extension:${auth.user.id}`, 6)) return json(res, 429, { error: "Please wait before creating another extension key." });
   const extensionId = clean(req.body?.extensionId, 120) || "chrome-web-store-pending";
   const token = `rr_ext_${randomBytes(24).toString("base64url")}`;
   const response = await userRest("extension_connections", auth.token, { method: "POST", headers: { "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ id: crypto.randomUUID(), user_id: auth.user.id, extension_id: extensionId, token_hash: hash(token) }) });
