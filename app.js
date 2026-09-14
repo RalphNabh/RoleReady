@@ -32,7 +32,7 @@ let chunks = [];
 let recognition;
 let cameraStream;
 let state = {
-  profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], connections: [], extensionConnections: [], reminderStatus: null, onboarding: { step: 1, draft: {}, repos: [], proposals: [] }, onboardingShown: false, feed: [], view: "home", selectedJobId: DEMO_JOB.id, selectedChallengeId: "pair-index", language: "javascript", code: "", interview: null, feedRequested: false
+  profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], attempts: [], connections: [], extensionConnections: [], reminderStatus: null, onboarding: { step: 1, draft: {}, repos: [], proposals: [] }, onboardingShown: false, feed: [], view: "home", selectedJobId: DEMO_JOB.id, selectedChallengeId: "pair-index", language: "javascript", code: "", interview: null, feedRequested: false
 };
 
 async function setup() {
@@ -64,7 +64,7 @@ async function setup() {
 }
 
 function demoState() {
-  state = { ...state, profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], connections: [], extensionConnections: [], reminderStatus: null, selectedJobId: DEMO_JOB.id };
+  state = { ...state, profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], attempts: [], connections: [], extensionConnections: [], reminderStatus: null, selectedJobId: DEMO_JOB.id };
 }
 
 async function hydrate() {
@@ -76,13 +76,14 @@ async function hydrate() {
     supabase.from("milestones").select("*").order("due_at", { ascending: true }),
     supabase.from("proof_sprints").select("*").order("created_at", { ascending: false }),
     supabase.from("application_kits").select("*").order("updated_at", { ascending: false }),
+    supabase.from("coding_attempts").select("*").order("created_at", { ascending: false }).limit(30),
     supabase.from("profile_connections").select("*").order("updated_at", { ascending: false }),
     supabase.from("extension_connections").select("id,extension_id,created_at,last_used_at").order("created_at", { ascending: false })
   ];
   const results = await Promise.all(queries);
-  const [profile, evidence, jobs, milestones, sprints, kits, connections, extensionConnections] = results.map((result) => result.data || []);
+  const [profile, evidence, jobs, milestones, sprints, kits, attempts, connections, extensionConnections] = results.map((result) => result.data || []);
   state.profile = profile || { ...DEMO_PROFILE, onboarding_completed: false, onboarding: {}, full_name: session.user.user_metadata?.user_name || session.user.email?.split("@")[0] || "Candidate" };
-  state.evidence = evidence; state.jobs = jobs.map((job) => ({ ...job, status: legacyStatus(job.status) })); state.milestones = milestones; state.sprints = sprints; state.kits = kits; state.connections = Array.isArray(connections) ? connections : []; state.extensionConnections = Array.isArray(extensionConnections) ? extensionConnections : [];
+  state.evidence = evidence; state.jobs = jobs.map((job) => ({ ...job, status: legacyStatus(job.status) })); state.milestones = milestones; state.sprints = sprints; state.kits = kits; state.attempts = Array.isArray(attempts) ? attempts : []; state.connections = Array.isArray(connections) ? connections : []; state.extensionConnections = Array.isArray(extensionConnections) ? extensionConnections : [];
   try { state.reminderStatus = await api("/api/reminders?status=1", undefined, { method: "GET" }); } catch { state.reminderStatus = { available: false }; }
   if (!state.jobs.some((job) => job.id === state.selectedJobId)) state.selectedJobId = state.jobs[0]?.id;
 }
@@ -194,7 +195,9 @@ function renderAssessment() {
   const language = state.language || "javascript";
   const code = state.code || challenge.starter[language];
   const languages = { javascript: "JavaScript", typescript: "TypeScript", python: "Python", java: "Java", cpp: "C++", csharp: "C#" };
-  return `<section class="assessment-intro"><button class="back-link" data-action="back-job">← Job workspace</button><p class="eyebrow">ROLE-AWARE CODING ASSESSMENT</p><h2>Practice the signals this role is likely to test.</h2><p>Original challenges only. Related LeetCode links are topic practice, never a claim about an employer’s exact OA.</p></section><section class="assessment-path">${challenges.map((item, index) => `<button data-challenge="${item.id}" class="${challenge.id === item.id ? "active" : ""}"><span>${index + 1}</span><b>${esc(item.title)}</b><small>${esc(item.concept)} · ${item.minutes} min</small></button>`).join("")}</section><section class="assessment-shell"><aside class="surface"><label>Language<select id="language-select">${Object.entries(languages).map(([id, label]) => `<option value="${id}" ${id === language ? "selected" : ""}>${label}</option>`).join("")}</select></label><p class="eyebrow">${esc(challenge.concept)}</p><h2>${esc(challenge.title)}</h2><p>${esc(challenge.prompt)}</p><p class="assessment-contract">Implement the provided <code>solve</code> function. RoleReady evaluates checks on the server and never stores your raw code.</p><a class="practice-link" href="https://leetcode.com/problemset/?search=${encodeURIComponent(challenge.leetcodeQuery)}" target="_blank" rel="noreferrer">Related LeetCode topic ↗</a></aside><section class="surface"><div class="section-head"><div><p class="eyebrow">${esc(language.toUpperCase())} EDITOR</p><h2>Write your solution</h2></div>${actionButton("Run assessment", "run-code", "primary")}</div><textarea class="editor" id="code" spellcheck="false">${esc(code)}</textarea><pre class="output" id="code-output">${esc(state.assessmentOutput || "Choose a challenge, write a solution, then run the server-evaluated checks.")}</pre></section></section>`;
+  const attempts = state.attempts.filter((attempt) => attempt.saved_job_id === job?.id).slice(0, 4);
+  const history = attempts.length ? `<section class="assessment-history"><p class="eyebrow">YOUR RECENT RUNS</p><ul>${attempts.map((attempt) => `<li><span>${attempt.passed ? "✓" : "↻"}</span><div><b>${esc(languages[attempt.language] || attempt.language)} · ${esc(CHALLENGES[attempt.challenge_id]?.title || "Practice")}</b><small>${attempt.passed ? "Passed" : "Needs another pass"} · ${shortDate(attempt.created_at)}</small></div></li>`).join("")}</ul></section>` : `<section class="assessment-history empty compact-empty"><strong>No saved runs yet</strong><p>Run a challenge to build an honest practice history for this role.</p></section>`;
+  return `<section class="assessment-intro"><button class="back-link" data-action="back-job">← Job workspace</button><p class="eyebrow">ROLE-AWARE CODING ASSESSMENT</p><h2>Practice the signals this role is likely to test.</h2><p>Original challenges only. Related LeetCode links are topic practice, never a claim about an employer’s exact OA.</p></section><section class="assessment-path">${challenges.map((item, index) => `<button data-challenge="${item.id}" class="${challenge.id === item.id ? "active" : ""}"><span>${index + 1}</span><b>${esc(item.title)}</b><small>${esc(item.concept)} · ${item.minutes} min</small></button>`).join("")}</section><section class="assessment-shell"><aside class="surface"><label>Language<select id="language-select">${Object.entries(languages).map(([id, label]) => `<option value="${id}" ${id === language ? "selected" : ""}>${label}</option>`).join("")}</select></label><p class="eyebrow">${esc(challenge.concept)}</p><h2>${esc(challenge.title)}</h2><p>${esc(challenge.prompt)}</p><p class="assessment-contract">Implement the provided <code>solve</code> function. RoleReady evaluates checks on the server and never stores your raw code.</p><a class="practice-link" href="https://leetcode.com/problemset/?search=${encodeURIComponent(challenge.leetcodeQuery)}" target="_blank" rel="noreferrer">Related LeetCode topic ↗</a>${history}</aside><section class="surface"><div class="section-head"><div><p class="eyebrow">${esc(language.toUpperCase())} EDITOR</p><h2>Write your solution</h2></div>${actionButton("Run assessment", "run-code", "primary")}</div><textarea class="editor" id="code" spellcheck="false">${esc(code)}</textarea><pre class="output" id="code-output">${esc(state.assessmentOutput || "Choose a challenge, write a solution, then run the server-evaluated checks.")}</pre></section></section>`;
 }
 
 function renderInterview() {
@@ -672,6 +675,7 @@ async function runCode() {
   const output = $("#code-output");
   const challenge = CHALLENGES[state.selectedChallengeId];
   const code = $("#code").value;
+  const startedAt = Date.now();
   state.code = code;
   output.textContent = "Running server-evaluated checks in an isolated sandbox…";
   if (!session) {
@@ -682,12 +686,14 @@ async function runCode() {
     const result = await api("/api/assessment", { language: state.language, code, challengeId: challenge.id, jobId: selectedJob()?.id });
     state.assessmentOutput = `${result.passed ? "✓ Passed" : "Needs another pass"}\n\n${result.output}\n${result.hiddenSummary}\n\nNext: ${result.feedback?.nextStep || "Review your solution."}`;
     output.textContent = state.assessmentOutput;
-    const { error } = await supabase.from("coding_attempts").insert({
+    const record = {
       id: uid(), user_id: session.user.id, saved_job_id: selectedJob()?.id || null,
       language: state.language, challenge_id: challenge.id, passed: result.passed,
-      result_summary: result.output, feedback: result.feedback || {}
-    });
+      result_summary: result.output, feedback: result.feedback || {}, elapsed_seconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000))
+    };
+    const { error } = await supabase.from("coding_attempts").insert(record);
     if (error) toast(`Assessment ran, but its history was not saved: ${error.message}`);
+    else state.attempts = [record, ...state.attempts].slice(0, 30);
   } catch (error) {
     state.assessmentOutput = `Could not run code: ${error.message}`;
     output.textContent = state.assessmentOutput;
