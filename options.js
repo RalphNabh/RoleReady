@@ -1,14 +1,28 @@
-const fields = ["name", "targetRole", "skills", "apiBaseUrl", "connectionToken"];
+const DEFAULT_APP_URL = "https://role-ready-one.vercel.app";
+
 chrome.storage.local.get("candidateProfile", ({ candidateProfile = {} }) => {
-  fields.forEach((key) => document.querySelector(`#${key}`).value = Array.isArray(candidateProfile[key]) ? candidateProfile[key].join(", ") : candidateProfile[key] || "");
-  document.querySelector("#evidence").value = JSON.stringify({ projects: candidateProfile.projects || [], experiences: candidateProfile.experiences || [] }, null, 2);
+  document.querySelector("#apiBaseUrl").value = candidateProfile.apiBaseUrl || DEFAULT_APP_URL;
+  document.querySelector("#connectionToken").value = candidateProfile.connectionToken || "";
 });
+
 document.querySelector("#save-profile").onclick = () => {
-  let evidence;
-  try { evidence = JSON.parse(document.querySelector("#evidence").value); } catch { document.querySelector("#saved").textContent = "Please keep the evidence field as valid JSON."; return; }
-  const profile = {
-    name: document.querySelector("#name").value.trim(), targetRole: document.querySelector("#targetRole").value.trim(),
-    skills: document.querySelector("#skills").value.split(",").map((x) => x.trim()).filter(Boolean), apiBaseUrl: document.querySelector("#apiBaseUrl").value.trim(), connectionToken: document.querySelector("#connectionToken").value.trim(), ...evidence
-  };
-  chrome.storage.local.set({ candidateProfile: profile }, () => document.querySelector("#saved").textContent = "Saved. Return to a job page and reopen RoleReady.");
+  const status = document.querySelector("#saved");
+  let apiBaseUrl;
+  try {
+    apiBaseUrl = new URL(document.querySelector("#apiBaseUrl").value.trim()).href.replace(/\/$/, "");
+    if (!apiBaseUrl.startsWith("https://")) throw new Error();
+  } catch {
+    status.textContent = "Use a valid HTTPS workspace URL.";
+    return;
+  }
+  const connectionToken = document.querySelector("#connectionToken").value.trim();
+  if (!connectionToken || connectionToken.length < 20) {
+    status.textContent = "Paste the connection key from RoleReady Evidence Vault.";
+    return;
+  }
+  chrome.storage.local.get("candidateProfile", ({ candidateProfile = {} }) => {
+    chrome.storage.local.set({ candidateProfile: { ...candidateProfile, apiBaseUrl, connectionToken } }, () => {
+      status.textContent = "Connected. Return to a supported job page and reopen RoleReady.";
+    });
+  });
 };

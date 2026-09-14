@@ -11,29 +11,46 @@ function linkFrom(value = "") {
   return value.match(/href="([^"]+)"/i)?.[1] || "";
 }
 
+const GENERIC_TERMS = new Set(["about", "application", "career", "company", "full", "from", "intern", "internship", "job", "listing", "open", "role", "summer", "that", "the", "this", "through", "tracker", "with", "work", "working"]);
+
 function relevantTerms(text = "") {
-  return new Set((text.toLowerCase().match(/[a-z][a-z+#.-]{2,}/g) || []).filter((term) => !["with", "from", "that", "this", "intern", "summer", "engineering"].includes(term)));
+  return new Set((text.toLowerCase().match(/[a-z][a-z+#.-]{2,}/g) || []).filter((term) => !GENERIC_TERMS.has(term)));
 }
 
 function evidenceFit(role, evidence = [], profile = {}) {
-  const roleWords = relevantTerms(`${role.title} ${role.description || ""}`);
+  const hasRequirements = Boolean(role.requirements_available);
+  const roleWords = relevantTerms(`${role.title} ${hasRequirements ? role.description || "" : ""}`);
+  const targetWords = relevantTerms(profile.target_role || "");
   const candidate = relevantTerms(`${(profile.skills || []).join(" ")} ${evidence.map((item) => `${item.title} ${item.details}`).join(" ")}`);
   const matches = [...candidate].filter((word) => roleWords.has(word));
+  const targetMatches = [...targetWords].filter((word) => relevantTerms(role.title).has(word));
   const earlyCareer = /intern|new grad|university|student|early career/i.test(role.title) ? 12 : 0;
-  const score = Math.min(96, Math.max(28, 42 + Math.min(38, matches.length * 5) + earlyCareer));
-  return { score, matchedTerms: matches.slice(0, 8), reason: matches.length ? `Matches verified evidence in ${matches.slice(0, 3).join(", ")}.` : "Review the Proof Map before prioritizing this role." };
+  const score = Math.min(96, Math.max(24, 34 + Math.min(30, matches.length * 6) + Math.min(18, targetMatches.length * 9) + earlyCareer));
+  if (!hasRequirements) {
+    return {
+      score, rankingScore: score, displayScore: false, label: "Early relevance", matchedTerms: targetMatches.slice(0, 4),
+      reason: targetMatches.length ? `Matches your target role (${targetMatches.slice(0, 2).join(", ")}); the tracker does not include enough requirements for an evidence score.` : "Early-career relevance only — open the source for a full Proof Map."
+    };
+  }
+  return { score, rankingScore: score, displayScore: true, label: "Evidence fit", matchedTerms: matches.slice(0, 8), reason: matches.length ? `Matches verified evidence in ${matches.slice(0, 3).join(", ")}.` : "Review the Proof Map before prioritizing this role." };
 }
 
 function parseSimplify(markdown) {
   const rows = [];
+  const seenUrls = new Set();
+  let previousCompany = "";
   const rowPattern = /<tr>\s*<td>([\s\S]*?)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<\/tr>/gi;
   let match;
   while ((match = rowPattern.exec(markdown)) && rows.length < 30) {
-    const company = stripHtml(match[1]);
+    const rawCompany = stripHtml(match[1]);
+    const company = /^[↳↪⤷└]/.test(rawCompany) ? previousCompany : rawCompany;
     const title = stripHtml(match[2]);
     const location = stripHtml(match[3]);
     const applicationUrl = safeHttpUrl(linkFrom(match[4]));
-    if (!company || !title || !applicationUrl || /company|role/i.test(`${company} ${title}`)) continue;
+    if (!company || !title || !applicationUrl || seenUrls.has(applicationUrl) || /company|role/i.test(`${company} ${title}`)) continue;
+    if (!/^[↳↪⤷└]/.test(rawCompany)) previousCompany = company;
+    seenUrls.add(applicationUrl);
+    const publishedHint = stripHtml(match[5]);
     rows.push({
       id: `simplify-${company}-${title}-${applicationUrl}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 180),
       title,
@@ -42,10 +59,11 @@ function parseSimplify(markdown) {
       source_url: applicationUrl,
       source_name: "Simplify Jobs tracker",
       source_tier: "Community tracker",
-      published_hint: stripHtml(match[5]) || "Recently listed",
+      published_hint: publishedHint || "Not listed",
       fetched_at: new Date().toISOString().slice(0, 10),
-      description: "Public internship listing discovered through the Simplify Jobs tracker. Open the official application link to review full requirements.",
-      freshness: stripHtml(match[5]) || "Recently listed"
+      description: "Requirements are available at the linked job posting.",
+      requirements_available: false,
+      freshness: publishedHint ? `Listed ${publishedHint} · fetched today` : "Fetched today"
     });
   }
   return rows;
@@ -67,7 +85,7 @@ function normalizeGreenhouse(job, board) {
     title: clean(job.title, 220), company: clean(board.replace(/[-_]/g, " "), 160),
     location: clean(job.location?.name || "Location not listed", 220), description: clean(job.content || "", 9000),
     source_url: safeHttpUrl(job.absolute_url), source_name: "Official Greenhouse listing", source_tier: "Official",
-    fetched_at: new Date().toISOString().slice(0, 10), freshness: "Fetched now"
+    fetched_at: new Date().toISOString().slice(0, 10), requirements_available: true, freshness: "Fetched today"
   };
 }
 
@@ -76,7 +94,7 @@ function normalizeLever(job, site) {
     id: `lever-${site}-${job.id}`, title: clean(job.text, 220), company: clean(site.replace(/[-_]/g, " "), 160),
     location: clean(job.categories?.location || "Location not listed", 220), description: clean(job.descriptionPlain || job.description || "", 9000),
     source_url: safeHttpUrl(job.hostedUrl || job.applyUrl), source_name: "Official Lever listing", source_tier: "Official",
-    fetched_at: new Date().toISOString().slice(0, 10), freshness: "Fetched now"
+    fetched_at: new Date().toISOString().slice(0, 10), requirements_available: true, freshness: "Fetched today"
   };
 }
 

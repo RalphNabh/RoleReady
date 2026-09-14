@@ -10,36 +10,16 @@ const words = (text) => new Set((text || "").toLowerCase().match(/[a-z][a-z+#.-]
 const esc = (value = "") => String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const safeUrl = (value) => { try { const url = new URL(value); return url.protocol === "https:" ? url.href : "#"; } catch { return "#"; } };
 
-function offlineAnalyze(job, profile) {
-  const pageWords = words(`${job.title} ${job.description}`);
-  const skills = profile.skills || [];
-  const matched = skills.filter((skill) => pageWords.has(skill.toLowerCase()));
-  const seniorSignals = ["senior", "staff", "principal", "5+ years", "7+ years"];
-  const isSenior = seniorSignals.some((term) => job.description.toLowerCase().includes(term));
-  const score = Math.max(35, Math.min(94, 47 + matched.length * 8 + (isSenior ? -18 : 0)));
-  const project = (profile.projects || [])[0];
-  const strengths = [
-    matched.length ? `Direct overlap: ${matched.join(", ")}.` : `Your project work is relevant to this product-building role.`,
-    project ? `${project.name} gives you a concrete story about ${project.skills.join(", ")}.` : "Your experience gives you concrete delivery examples.",
-    `Your target role (${profile.targetRole || "early-career engineering"}) aligns with this opportunity.`
-  ];
-  const gaps = [];
-  if (!pageWords.has("typescript")) gaps.push("Confirm the required stack and learn any named tools before an interview.");
-  if (isSenior) gaps.push("This posting signals seniority; prioritize similar intern/new-grad variants.");
-  else gaps.push("Prepare one quantified impact story for each listed requirement.");
-  const bullet = project
-    ? `Built ${project.name}, a ${project.summary.replace(/^Built |^Created /, "").replace(/\.$/, "")}; applied ${project.skills.slice(0, 3).join(", ")} to deliver a user-focused product.`
-    : "Add one truthful project bullet that mirrors the job’s most important technical requirement.";
+function offlineAnalyze() {
   const proofMap = [
-    ...matched.slice(0, 2).map((skill) => ({ requirement: skill, evidence: `Your saved profile lists ${skill}.`, status: "proven", risk: `Expect a concrete ${skill} example.`, nextAction: "Prepare a 60-second ownership-and-impact story." })),
-    { requirement: "Role-specific evidence", evidence: "No direct proof captured from the job page yet.", status: "partial", risk: "A reviewer may ask how your past work transfers to this exact role.", nextAction: "Connect one project outcome to the company’s product or user problem." },
-    { requirement: "Testing or production quality", evidence: "No testing evidence is currently saved.", status: "gap", risk: "An interviewer may probe reliability and engineering judgment.", nextAction: "Add a small tested feature to an existing project before applying." }
-  ].slice(0, 4);
-  return { score, strengths, gaps, bullet, matched, proofMap, recruiterLens: proofMap.find((item) => item.status !== "proven")?.risk || "Your strongest evidence is relevant; lead with concrete results." };
+    { requirement: "Verified candidate evidence", evidence: "Connect your RoleReady workspace before the extension can read approved evidence.", status: "partial", risk: "A fit score without your confirmed evidence would be misleading.", nextAction: "Pair this extension in Evidence Vault, then rerun the analysis." },
+    { requirement: "Role-specific proof", evidence: "This job posting is captured locally and has not been matched to your evidence.", status: "gap", risk: "Recruiters will look for a concrete project or experience relevant to the listed work.", nextAction: "Open the workspace after pairing to create a truthful Proof Map." }
+  ];
+  return { score: null, strengths: ["The job posting is captured and ready for a cloud-backed review."], gaps: ["Pair your workspace to see verified evidence, fit, and company intelligence."], bullet: "Connect RoleReady before generating any tailored resume language.", matched: [], proofMap, recruiterLens: "Connect your workspace before trusting a match score or application recommendation." };
 }
 
 async function analyze(job, profile = {}) {
-  if (!profile.apiBaseUrl) return { ...offlineAnalyze(job, profile), mode: "offline", sources: [] };
+  if (!profile.apiBaseUrl || !profile.connectionToken) return { ...offlineAnalyze(), mode: "offline", sources: [] };
   try {
     const response = await fetch(`${profile.apiBaseUrl.replace(/\/$/, "")}/api/agent`, {
       method: "POST", headers: { "Content-Type": "application/json", ...(profile.connectionToken ? { "X-RoleReady-Extension": profile.connectionToken } : {}) }, body: JSON.stringify({ action: "analyze", job, profile })
@@ -49,7 +29,7 @@ async function analyze(job, profile = {}) {
     return { ...analysis, bullet: analysis.resumeBullet, matched: profile.skills || [], mode: "live", sources: sources || [] };
   } catch (error) {
     console.warn("Using RoleReady offline analysis", error);
-    return { ...offlineAnalyze(job, profile), mode: "offline", sources: [] };
+    return { ...offlineAnalyze(), mode: "offline", sources: [] };
   }
 }
 
@@ -104,8 +84,8 @@ async function render() {
   const fragment = template.content.cloneNode(true);
   fragment.querySelector(".job-title").textContent = job.title;
   fragment.querySelector(".company").textContent = `${job.company}${job.location ? ` · ${job.location}` : ""}`;
-  fragment.querySelectorAll(".score").forEach((el) => el.textContent = `${result.score}%`);
-  fragment.querySelector(".score-note").textContent = result.score > 70 ? "Strong application target" : "Worth a strategic look";
+  fragment.querySelectorAll(".score").forEach((el) => el.textContent = result.score == null ? "—" : `${result.score}%`);
+  fragment.querySelector(".score-note").textContent = result.score == null ? "Pair to calculate a verified fit" : result.score > 70 ? "Strong application target" : "Worth a strategic look";
   const mode = fragment.querySelector("#analysis-mode");
   mode.classList.add(result.mode === "live" ? "live" : "offline");
   mode.textContent = result.mode === "live"
@@ -122,15 +102,36 @@ async function render() {
     sources.querySelector(".source-list").innerHTML = result.sources.map((source) => `<a target="_blank" rel="noreferrer" href="${safeUrl(source.url)}"><b>${esc(source.title)}</b><span>${esc(source.label || "Publicly reported")} · ${esc(source.date || "Retrieved today")}</span><span>${esc(source.highlights?.[0] || "Open source")}</span></a>`).join("");
   }
   app.replaceChildren(fragment);
-  document.querySelector("#save").onclick = () => saveApplication(job, result);
+  document.querySelector("#save").onclick = () => { void saveApplication(job, result, profile); };
   document.querySelector("#command-center").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
   document.querySelectorAll("[data-requirement]").forEach((button) => button.onclick = () => chrome.runtime.sendMessage({ type: "HIGHLIGHT_REQUIREMENT", requirement: button.dataset.requirement }));
 }
 
-function saveApplication(job, result) {
-  chrome.runtime.sendMessage({ type: "SAVE_APPLICATION", application: { job, result, status: "saved" } }, () => {
-    document.querySelector("#save").textContent = "✓ Saved — prep plan ready";
-  });
+async function saveApplication(job, result, profile) {
+  const button = document.querySelector("#save");
+  if (result.mode !== "live" || !profile.connectionToken) {
+    button.textContent = "Connect workspace to save";
+    document.querySelector("#analysis-mode").textContent = "Pair this extension in Evidence Vault, then save a cloud-backed role workspace.";
+    return;
+  }
+  button.disabled = true; button.textContent = "Saving to RoleReady…";
+  try {
+    const response = await fetch(`${profile.apiBaseUrl.replace(/\/$/, "")}/api/agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-RoleReady-Extension": profile.connectionToken },
+      body: JSON.stringify({ action: "save-role", job, analysis: result, sources: result.sources || [] })
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.saved?.id) throw new Error(payload.error || "Cloud save did not complete.");
+    chrome.runtime.sendMessage({ type: "SAVE_CLOUD_APPLICATION", jobId: payload.saved.id, apiBaseUrl: profile.apiBaseUrl });
+    button.textContent = "✓ Saved — open workspace";
+    button.disabled = false;
+    button.onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+  } catch (error) {
+    console.warn("RoleReady cloud save failed", error);
+    button.disabled = false; button.textContent = "Try saving again";
+    document.querySelector("#analysis-mode").textContent = `Could not save: ${error.message || "check your workspace connection."}`;
+  }
 }
 
 document.querySelector("#settings").onclick = () => chrome.runtime.openOptionsPage();

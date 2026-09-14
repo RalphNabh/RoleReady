@@ -11,6 +11,7 @@ const DEMO_PROFILE = {
     "Teaching Assistant — explained data structures and debugging to 40 students weekly."
   ]
 };
+const DEFAULT_APP_URL = "https://role-ready-one.vercel.app";
 
 chrome.runtime.onInstalled.addListener(() => {
   void (async () => {
@@ -36,6 +37,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  if (message.type === "SAVE_CLOUD_APPLICATION") {
+    const entry = { id: message.jobId, apiBaseUrl: message.apiBaseUrl || DEFAULT_APP_URL, savedAt: Date.now() };
+    chrome.storage.local.set({ lastSavedCloudJob: entry }).then(() => sendResponse({ ok: true, entry }));
+    return true;
+  }
   if (message.type === "UPDATE_APPLICATION") {
     chrome.storage.local.get("savedApplications").then(({ savedApplications = [] }) => {
       const updated = savedApplications.map((entry) => entry.id === message.id ? { ...entry, ...message.changes, updatedAt: Date.now() } : entry);
@@ -44,12 +50,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message.type === "OPEN_DASHBOARD") {
-    chrome.storage.local.get(["candidateProfile", "currentJob", "lastSavedApplication"]).then(({ candidateProfile = {}, currentJob, lastSavedApplication }) => {
+    chrome.storage.local.get(["candidateProfile", "currentJob", "lastSavedApplication", "lastSavedCloudJob"]).then(({ candidateProfile = {}, currentJob, lastSavedApplication, lastSavedCloudJob }) => {
+      const origin = (lastSavedCloudJob?.apiBaseUrl || candidateProfile.apiBaseUrl || DEFAULT_APP_URL).replace(/\/$/, "");
+      if (lastSavedCloudJob?.id) {
+        chrome.tabs.create({ url: `${origin}/?workspace=1&jobId=${encodeURIComponent(lastSavedCloudJob.id)}` });
+        sendResponse({ ok: true });
+        return;
+      }
       const application = lastSavedApplication || (currentJob ? { job: currentJob, result: {} } : null);
       const imported = application ? { ...application.job, analysis: application.result, result: application.result, sources: application.result?.sources || [] } : null;
-      const origin = (candidateProfile.apiBaseUrl || "https://role-ready-one.vercel.app").replace(/\/$/, "");
       const encoded = imported ? btoa(unescape(encodeURIComponent(JSON.stringify(imported)))) : "";
-      chrome.tabs.create({ url: `${origin}/${encoded ? `?importJob=${encodeURIComponent(encoded)}` : ""}` });
+      chrome.tabs.create({ url: `${origin}/${encoded ? `?importJob=${encodeURIComponent(encoded)}` : "?workspace=1"}` });
       sendResponse({ ok: true });
     });
     return true;
