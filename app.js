@@ -260,7 +260,18 @@ function bindRecordControls() {
 }
 
 function doAction(action) {
-  const handlers = { evidence: openEvidenceModal, resume: openResumeImport, github: openGitHubImport, onboarding: () => openOnboarding(1), "refresh-github": () => openOnboarding(2), profile: openProfileModal, "extension-key": openExtensionKey, discover: () => { state.view = "discover"; render(); }, "refresh-feed": loadFeed, "track-ats": openAtsModal, import: () => openImportJobModal(), "open-best": () => { state.selectedJobId = [...state.jobs].sort((a, b) => jobScore(b) - jobScore(a))[0]?.id; state.view = "job"; render(); }, "save-stage": saveStage, sprint: openSprintModal, "open-sprint": openSprintModal, studio: () => { state.view = "studio"; render(); }, "generate-kit": generateKit, "save-kit-edits": saveKitEdits, "copy-note": copyRecruiterNote, "print-kit": printKit, "docx-kit": downloadDocx, assessment: () => { state.view = "assessment"; render(); }, "run-code": runCode, interview: () => { state.view = "interview"; render(); }, "start-interview": startInterview, "submit-answer": submitAnswer, "back-job": () => { stopCamera(); state.view = "job"; render(); }, milestone: openMilestoneModal };
+  const handlers = {
+    evidence: openEvidenceModal, resume: openResumeImport, github: openGitHubImport, onboarding: () => openOnboarding(1),
+    "refresh-github": () => { openOnboarding(2); queueMicrotask(loadOnboardingGithub); }, profile: openProfileModal,
+    "extension-key": openExtensionKey, discover: () => { state.view = "discover"; render(); }, "refresh-feed": loadFeed,
+    "track-ats": openAtsModal, import: () => openImportJobModal(),
+    "open-best": () => { state.selectedJobId = [...state.jobs].sort((a, b) => jobScore(b) - jobScore(a))[0]?.id; state.view = "job"; render(); },
+    "save-stage": saveStage, sprint: openSprintModal, "open-sprint": openSprintModal, studio: () => { state.view = "studio"; render(); },
+    "generate-kit": generateKit, "save-kit-edits": saveKitEdits, "copy-note": copyRecruiterNote, "print-kit": printKit,
+    "docx-kit": downloadDocx, assessment: () => { state.view = "assessment"; render(); }, "run-code": runCode,
+    interview: () => { state.view = "interview"; render(); }, "start-interview": startInterview, "submit-answer": submitAnswer,
+    "back-job": () => { stopCamera(); state.view = "job"; render(); }, milestone: openMilestoneModal
+  };
   handlers[action]?.();
 }
 
@@ -313,6 +324,7 @@ async function updateProfile(changes) {
 }
 
 function connectionFor(provider) { return state.connections.find((connection) => connection.provider === provider); }
+function evidenceIdForSource(source) { return state.evidence.find((item) => item.source === source)?.id || uid(); }
 async function saveConnection(provider, { externalId = null, metadata = {}, status = "connected" } = {}) {
   if (!session || !supabase) return null;
   const prior = connectionFor(provider);
@@ -352,8 +364,16 @@ function renderOnboarding() {
     return;
   }
   if (active === 2) {
-    const github = connectionFor("github"); const selected = new Set(draft.githubRepos || github?.metadata?.selectedRepos || []); const repos = state.onboarding.repos || [];
-    onboardingShell(2, `<p class="eyebrow">PUBLIC GITHUB</p><h1>Bring in projects you can actually discuss.</h1><p class="onboarding-copy">RoleReady reads public repository metadata and README text. Pick what is relevant; you will approve every proposed project later.</p><div class="connection-row"><label>GitHub username<input id="onboarding-github-login" value="${esc(draft.githubLogin ?? github?.external_id ?? session.user.user_metadata?.user_name ?? "")}" placeholder="your-github-username"></label><button class="secondary" id="onboarding-load-github">${repos.length ? "Refresh" : "Find projects"}</button></div><div class="repo-select-list">${repos.length ? repos.map((repo) => `<label><input type="checkbox" value="${esc(repo.fullName)}" ${selected.has(repo.fullName) ? "checked" : ""}><span><b>${esc(repo.name)}</b><small>${esc(repo.description || "No description yet")} · ${esc(repo.language || "Stack not listed")} · updated ${shortDate(repo.updatedAt)}</small></span></label>`).join("") : `<div class="onboarding-empty"><b>Public projects, not a scraped profile.</b><span>Enter the username linked to this account to choose repositories.</span></div>`}</div><p class="connection-foot">${github?.last_synced_at ? `Last synced ${new Date(github.last_synced_at).toLocaleDateString()}.` : "No GitHub data is stored until you continue."}</p><div class="form-actions"><button class="secondary" id="onboarding-back">Back</button><button class="primary" id="onboarding-github-next" ${repos.length ? "" : "disabled"}>Use selected projects →</button></div>`);
+    const github = connectionFor("github");
+    const selected = new Set(draft.githubRepos || github?.metadata?.selectedRepos || []);
+    const repos = state.onboarding.repos || [];
+    const snapshots = github?.metadata?.repoSnapshots || {};
+    const repoRows = repos.length ? repos.map((repo) => {
+      const prior = snapshots[repo.fullName];
+      const changed = Boolean(prior?.updatedAt && repo.updatedAt && prior.updatedAt !== repo.updatedAt);
+      return `<label><input type="checkbox" value="${esc(repo.fullName)}" ${selected.has(repo.fullName) ? "checked" : ""}><span><b>${esc(repo.name)} ${changed ? `<em class="sync-change">Updated since review</em>` : ""}</b><small>${esc(repo.description || "No description yet")} · ${esc(repo.language || "Stack not listed")} · updated ${shortDate(repo.updatedAt)}${changed ? " · re-review required" : ""}</small></span></label>`;
+    }).join("") : `<div class="onboarding-empty"><b>Public projects, not a scraped profile.</b><span>Enter the username linked to this account to choose repositories.</span></div>`;
+    onboardingShell(2, `<p class="eyebrow">PUBLIC GITHUB</p><h1>Bring in projects you can actually discuss.</h1><p class="onboarding-copy">RoleReady reads public repository metadata and README text. A repository updated since your last review is flagged; pick what is relevant and approve every proposed project again before it changes your evidence.</p><div class="connection-row"><label>GitHub username<input id="onboarding-github-login" value="${esc(draft.githubLogin ?? github?.external_id ?? session.user.user_metadata?.user_name ?? "")}" placeholder="your-github-username"></label><button class="secondary" id="onboarding-load-github">${repos.length ? "Refresh" : "Find projects"}</button></div><div class="repo-select-list">${repoRows}</div><p class="connection-foot">${github?.last_synced_at ? `Last synced ${new Date(github.last_synced_at).toLocaleDateString()}. Refresh checks selected repositories against their last reviewed version.` : "No GitHub data is stored until you continue."}</p><div class="form-actions"><button class="secondary" id="onboarding-back">Back</button><button class="primary" id="onboarding-github-next" ${repos.length ? "" : "disabled"}>Review selected projects →</button></div>`);
     $("#onboarding-back").onclick = () => { state.onboarding.step = 1; renderOnboarding(); };
     $("#onboarding-load-github").onclick = loadOnboardingGithub;
     $("#onboarding-github-next").onclick = prepareGithubProposals;
@@ -373,9 +393,22 @@ function renderOnboarding() {
   $("#onboarding-review").onsubmit = finishOnboarding;
 }
 async function loadOnboardingGithub() { const login = $("#onboarding-github-login").value.trim().replace(/^@/, ""); if (!login) return toast("Enter a public GitHub username first."); const button = $("#onboarding-load-github"); button.disabled = true; button.textContent = "Finding…"; try { const data = await api("/api/github", { action: "repos", login }); onboardingDraft().githubLogin = data.login; state.onboarding.repos = data.repos; renderOnboarding(); } catch (error) { toast(error.message); button.disabled = false; button.textContent = "Find projects"; } }
-async function prepareGithubProposals() { const selected = $$(".repo-select-list input:checked").map((item) => item.value); if (selected.length > 6) return toast("Choose up to six projects for one review pass."); const draft = onboardingDraft(); draft.githubRepos = selected; try { const previews = await Promise.all(selected.map((fullName) => api("/api/github", { action: "preview", fullName }))); draft.githubProposals = previews.map((item) => item.proposed); await saveConnection("github", { externalId: draft.githubLogin, metadata: { selectedRepos: selected, publicOnly: true } }); state.onboarding.step = 3; renderOnboarding(); } catch (error) { toast(error.message); } }
+async function prepareGithubProposals() {
+  const selected = $$(".repo-select-list input:checked").map((item) => item.value);
+  if (selected.length > 6) return toast("Choose up to six projects for one review pass.");
+  const draft = onboardingDraft();
+  draft.githubRepos = selected;
+  try {
+    const previews = await Promise.all(selected.map((fullName) => api("/api/github", { action: "preview", fullName })));
+    draft.githubProposals = previews.map((item) => item.proposed);
+    const snapshots = Object.fromEntries((state.onboarding.repos || []).filter((repo) => selected.includes(repo.fullName)).map((repo) => [repo.fullName, { updatedAt: repo.updatedAt, description: repo.description || "", language: repo.language || "" }]));
+    await saveConnection("github", { externalId: draft.githubLogin, metadata: { selectedRepos: selected, repoSnapshots: snapshots, publicOnly: true } });
+    state.onboarding.step = 3;
+    renderOnboarding();
+  } catch (error) { toast(error.message); }
+}
 async function readOnboardingFile() { const file = $("#onboarding-file")?.files?.[0]; if (!file) return toast("Choose a PDF, DOCX, TXT, or LinkedIn CSV export first."); const button = $("#onboarding-read-file"); button.disabled = true; button.textContent = "Reading…"; try { await discardOnboardingResume(); const path = await uploadResume(file); const data = await api("/api/evidence", { fileName: file.name, mimeType: file.type, dataBase64: await fileBase64(file) }); Object.assign(onboardingDraft(), { resumeImport: { fileName: file.name, fileType: file.type, storagePath: path }, resumeProposals: data.proposedEvidence }); renderOnboarding(); } catch (error) { toast(error.message); button.disabled = false; button.textContent = "Read privately"; } }
-async function finishOnboarding(event) { event.preventDefault(); const form = new FormData(event.currentTarget); const draft = onboardingDraft(); const proposals = [...(draft.githubProposals || []), ...(draft.resumeProposals || [])]; const approved = proposals.flatMap((proposal, index) => form.get(`use-${index}`) ? [{ id: uid(), user_id: session.user.id, kind: form.get(`kind-${index}`), title: form.get(`title-${index}`).trim(), details: form.get(`details-${index}`).trim(), source: proposal.source || "Connected source", confirmed: true }] : []); let linkedInUrl = "";
+async function finishOnboarding(event) { event.preventDefault(); const form = new FormData(event.currentTarget); const draft = onboardingDraft(); const proposals = [...(draft.githubProposals || []), ...(draft.resumeProposals || [])]; const approved = proposals.flatMap((proposal, index) => { const source = proposal.source || "Connected source"; return form.get(`use-${index}`) ? [{ id: evidenceIdForSource(source), user_id: session.user.id, kind: form.get(`kind-${index}`), title: form.get(`title-${index}`).trim(), details: form.get(`details-${index}`).trim(), source, confirmed: true }] : []; }); let linkedInUrl = "";
   if (draft.linkedinUrl) { try { const url = new URL(draft.linkedinUrl); if (url.protocol !== "https:") throw new Error(); linkedInUrl = url.href; } catch { return toast("Use a valid https LinkedIn URL, or leave it blank."); } }
   try { if (!await saveEvidenceBatch(approved)) return; if (draft.resumeImport) await saveEvidenceImport(draft.resumeImport, draft.resumeProposals || []);
     if (linkedInUrl) { const url = new URL(linkedInUrl); await saveConnection("linkedin_reference", { externalId: url.hostname, metadata: { url: url.href, scraped: false } }); }
@@ -482,9 +515,10 @@ function openEvidenceReview(proposals, importMeta = {}) {
       const selected = [];
       for (let index = 0; index < proposals.length; index++) {
         if (!form.get(`use-${index}`)) continue;
+        const source = importMeta.fileName ? importSource(importMeta) : proposals[index].source || "GitHub import";
         selected.push({
-          id: uid(), kind: form.get(`kind-${index}`), title: form.get(`title-${index}`).trim(),
-          details: form.get(`details-${index}`).trim(), source: importMeta.fileName ? importSource(importMeta) : proposals[index].source || "GitHub import", confirmed: true
+          id: evidenceIdForSource(source), kind: form.get(`kind-${index}`), title: form.get(`title-${index}`).trim(),
+          details: form.get(`details-${index}`).trim(), source, confirmed: true
         });
       }
       const button = $("#evidence-review button.primary"); button.disabled = true; button.textContent = "Saving…";

@@ -10,7 +10,7 @@ Built solo at AI Tinkerers, September 12, 2026.
 
 - **Chrome extension:** reads supported LinkedIn, Greenhouse, Lever, Simplify, and Google Careers pages in context. Structured `JobPosting` data is preferred when present; Proof Map requirements can jump back to the matching page text.
 - **Guided evidence onboarding:** a four-step first-run flow collects career focus, selected public GitHub repositories, a private resume or LinkedIn CSV export, and an optional LinkedIn reference link. Each source stays separate until the candidate explicitly approves the exact facts to use.
-- **Evidence Vault:** users can refresh selected public GitHub projects or replace their private resume/export when their work changes. RoleReady proposes claims, but only user-approved items become evidence.
+- **Evidence Vault:** users can refresh selected public GitHub projects; repositories updated since their last review are flagged and must be approved again before their evidence changes. Private resume/export suggestions also remain opt-in.
 - **Sourced discovery:** the public Simplify tracker is ranked against confirmed evidence. Users can also connect official public Greenhouse and Lever job boards, with source and freshness labels.
 - **Role workspace:** persistent pipeline, real milestones, Proof Sprints, source-ranked Company Intelligence, and a customizable truthful Application Studio with print-to-PDF and DOCX export.
 - **Assessment room:** an adaptive three-challenge original practice set in JavaScript, TypeScript, Python, Java, C++, and C#. Server-evaluated Judge0 checks return concise feedback; RoleReady stores result summaries, never raw code.
