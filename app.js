@@ -122,7 +122,9 @@ function nextMove() {
   if (activeSprint) return { title: activeSprint.title, copy: activeSprint.deliverable, action: "open-sprint" };
   const job = [...state.jobs].sort((a, b) => jobScore(b) - jobScore(a))[0];
   const gap = job?.analysis?.proofMap?.find((item) => item.status !== "proven");
-  return gap ? { title: `Close: ${gap.requirement}`, copy: gap.nextAction, action: "open-best" } : { title: "Build your Evidence Vault", copy: "Add a project, experience, resume, or public repository you can genuinely discuss.", action: "evidence" };
+  if (gap) return { title: `Close: ${gap.requirement}`, copy: gap.nextAction, action: "open-best" };
+  if (state.evidence.length) return { title: "Analyze a real role", copy: "Open the Chrome extension beside a listing, or discover a sourced role to turn your evidence into a Proof Map.", action: "discover" };
+  return { title: "Build your Evidence Vault", copy: "Add a project, experience, resume, or public repository you can genuinely discuss.", action: "evidence" };
 }
 
 function renderHome() {
