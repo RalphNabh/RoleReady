@@ -51,13 +51,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.type === "OPEN_DASHBOARD") {
     chrome.storage.local.get(["candidateProfile", "currentJob", "lastSavedApplication", "lastSavedCloudJob"]).then(({ candidateProfile = {}, currentJob, lastSavedApplication, lastSavedCloudJob }) => {
-      const origin = (lastSavedCloudJob?.apiBaseUrl || candidateProfile.apiBaseUrl || DEFAULT_APP_URL).replace(/\/$/, "");
-      if (lastSavedCloudJob?.id) {
-        chrome.tabs.create({ url: `${origin}/?workspace=1&jobId=${encodeURIComponent(lastSavedCloudJob.id)}` });
+      const origin = (message.apiBaseUrl || candidateProfile.apiBaseUrl || DEFAULT_APP_URL).replace(/\/$/, "");
+      if (message.jobId) {
+        chrome.tabs.create({ url: `${origin}/?workspace=1&jobId=${encodeURIComponent(message.jobId)}` });
         sendResponse({ ok: true });
         return;
       }
-      const application = lastSavedApplication || (currentJob ? { job: currentJob, result: {} } : null);
+      const application = !message.openWorkspace && (lastSavedApplication || (currentJob ? { job: currentJob, result: {} } : null));
       const imported = application ? { ...application.job, analysis: application.result, result: application.result, sources: application.result?.sources || [] } : null;
       const encoded = imported ? btoa(unescape(encodeURIComponent(JSON.stringify(imported)))) : "";
       chrome.tabs.create({ url: `${origin}/${encoded ? `?importJob=${encodeURIComponent(encoded)}` : "?workspace=1"}` });

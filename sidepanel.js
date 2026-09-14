@@ -103,7 +103,7 @@ async function render() {
   }
   app.replaceChildren(fragment);
   document.querySelector("#save").onclick = () => { void saveApplication(job, result, profile); };
-  document.querySelector("#command-center").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+  document.querySelector("#command-center").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD", openWorkspace: true });
   document.querySelectorAll("[data-requirement]").forEach((button) => button.onclick = () => chrome.runtime.sendMessage({ type: "HIGHLIGHT_REQUIREMENT", requirement: button.dataset.requirement }));
 }
 
@@ -126,7 +126,7 @@ async function saveApplication(job, result, profile) {
     chrome.runtime.sendMessage({ type: "SAVE_CLOUD_APPLICATION", jobId: payload.saved.id, apiBaseUrl: profile.apiBaseUrl });
     button.textContent = "✓ Saved — open workspace";
     button.disabled = false;
-    button.onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+    button.onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD", jobId: payload.saved.id, apiBaseUrl: profile.apiBaseUrl });
   } catch (error) {
     console.warn("RoleReady cloud save failed", error);
     button.disabled = false; button.textContent = "Try saving again";
@@ -135,7 +135,7 @@ async function saveApplication(job, result, profile) {
 }
 
 document.querySelector("#settings").onclick = () => chrome.runtime.openOptionsPage();
-document.querySelector("#dashboard").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+document.querySelector("#dashboard").onclick = () => chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD", openWorkspace: true });
 chrome.runtime.sendMessage({ type: "GET_CONTEXT" }, (data) => {
   if (chrome.runtime.lastError) {
     console.warn("RoleReady could not reach its background worker.", chrome.runtime.lastError.message);
