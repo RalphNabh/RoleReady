@@ -126,6 +126,21 @@ create table if not exists public.extension_connections (
   last_used_at timestamptz
 );
 
+-- Source connections are private intake records. They describe where a user chose to
+-- pull evidence from; they never turn source material into approved evidence by themselves.
+create table if not exists public.profile_connections (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  provider text not null check (provider in ('github','resume','linkedin_export','linkedin_reference')),
+  external_id text,
+  status text not null default 'connected' check (status in ('connected','needs_refresh','error','disconnected')),
+  metadata jsonb not null default '{}'::jsonb,
+  last_synced_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, provider)
+);
+
 create table if not exists public.reminder_deliveries (
   id uuid primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -138,6 +153,8 @@ create table if not exists public.reminder_deliveries (
 -- Existing hackathon projects can run this safely after the initial schema.
 alter table public.profiles add column if not exists timezone text not null default 'America/Toronto';
 alter table public.profiles add column if not exists email_reminders boolean not null default false;
+alter table public.profiles add column if not exists onboarding_completed boolean not null default false;
+alter table public.profiles add column if not exists onboarding jsonb not null default '{}'::jsonb;
 alter table public.proof_sprints add column if not exists target_requirement text;
 alter table public.proof_sprints add column if not exists artifact_url text;
 alter table public.proof_sprints add column if not exists artifact_notes text;
@@ -168,6 +185,7 @@ alter table public.interview_sessions enable row level security;
 alter table public.evidence_imports enable row level security;
 alter table public.application_kits enable row level security;
 alter table public.extension_connections enable row level security;
+alter table public.profile_connections enable row level security;
 alter table public.reminder_deliveries enable row level security;
 
 drop policy if exists "profiles are private" on public.profiles;
@@ -181,6 +199,7 @@ drop policy if exists "imports are private" on public.evidence_imports;
 drop policy if exists "application kits are private" on public.application_kits;
 drop policy if exists "extension connections are private" on public.extension_connections;
 drop policy if exists "reminder deliveries are private" on public.reminder_deliveries;
+drop policy if exists "profile connections are private" on public.profile_connections;
 create policy "profiles are private" on public.profiles for all using (auth.uid() = id) with check (auth.uid() = id);
 create policy "evidence is private" on public.candidate_evidence for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "jobs are private" on public.saved_jobs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -192,6 +211,7 @@ create policy "imports are private" on public.evidence_imports for all using (au
 create policy "application kits are private" on public.application_kits for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "extension connections are private" on public.extension_connections for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "reminder deliveries are private" on public.reminder_deliveries for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "profile connections are private" on public.profile_connections for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Private resume storage. Raw uploads remain opt-in and are not sent to the AI automatically.
 insert into storage.buckets (id, name, public) values ('resume-files', 'resume-files', false) on conflict (id) do nothing;
