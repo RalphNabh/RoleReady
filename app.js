@@ -220,6 +220,29 @@ function bindView() {
   $("#language-select")?.addEventListener("change", (event) => { state.language = event.target.value; state.code = ""; state.assessmentOutput = ""; render(); });
   $("#email-reminders")?.addEventListener("change", (event) => updateProfile({ email_reminders: event.target.checked }));
   $("#record-button")?.addEventListener("click", recordAnswer); $("#camera-button")?.addEventListener("click", toggleCamera); $("#speak-question")?.addEventListener("click", () => speak($("#voice-question")?.textContent || "")); $("#save-interview")?.addEventListener("change", (event) => { if (state.interview) state.interview.consent = event.target.checked; });
+  bindRecordControls();
+}
+
+function bindRecordControls() {
+  const confirmedEvidence = state.evidence.filter((item) => item.confirmed);
+  $$(".evidence").forEach((article, index) => {
+    const evidence = confirmedEvidence[index]; if (!evidence) return;
+    const controls = document.createElement("div"); controls.className = "record-controls";
+    const edit = document.createElement("button"); edit.className = "mini-control"; edit.textContent = "Edit"; edit.onclick = () => openEditEvidenceModal(evidence.id);
+    const remove = document.createElement("button"); remove.className = "mini-control danger-control"; remove.textContent = "Delete"; remove.onclick = () => { void deleteEvidence(evidence.id); };
+    controls.append(edit, remove); article.append(controls);
+  });
+  const stage = $(".stage-fields"); const job = selectedJob();
+  if (stage && job) {
+    const edit = document.createElement("button"); edit.className = "secondary"; edit.textContent = "Edit role"; edit.onclick = () => openEditJobModal(job);
+    const remove = document.createElement("button"); remove.className = "mini-control danger-control"; remove.textContent = "Delete"; remove.onclick = () => { void deleteJob(job.id); };
+    stage.append(edit, remove);
+  }
+  const sprint = job ? sprintFor(job.id) : null; const sprintSurface = $(".sprint-surface");
+  if (sprint && sprintSurface) {
+    const remove = document.createElement("button"); remove.className = "link danger-link"; remove.textContent = "Delete sprint"; remove.onclick = () => { void deleteSprint(sprint.id); };
+    sprintSurface.append(remove);
+  }
 }
 
 function doAction(action) {
@@ -344,12 +367,35 @@ function openEvidenceModal() { openModal(`<form id="evidence-form"><label>Eviden
 async function saveEvidence(entry) {
   const normalized = { ...entry, user_id: session?.user?.id || entry.user_id };
   if (session && supabase) {
-    const { error } = await supabase.from("candidate_evidence").insert(normalized);
+    const { error } = await supabase.from("candidate_evidence").upsert(normalized);
     if (error) { toast(`Evidence was not saved: ${error.message}`); return false; }
     toast("Confirmed evidence saved securely.");
   } else toast("Saved in demo mode. Sign in to sync.");
   state.evidence = [normalized, ...state.evidence.filter((item) => item.id !== normalized.id)];
   return true;
+}
+
+function openEditEvidenceModal(id) {
+  const current = state.evidence.find((item) => item.id === id); if (!current) return;
+  openModal(`<form id="edit-evidence-form"><label>Evidence type<select name="kind">${["project", "experience", "education", "skill"].map((kind) => `<option value="${kind}" ${current.kind === kind ? "selected" : ""}>${kind === "skill" ? "Skill / certification" : kind}</option>`).join("")}</select></label><label>Title<input name="title" required value="${esc(current.title)}"></label><label>What this proves<textarea name="details" required>${esc(current.details)}</textarea></label><p class="source-disclaimer">Source: ${esc(current.source || "User-confirmed")}</p><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Save evidence</button></div></form>`, () => {
+    $("[data-action=close]").onclick = closeModal;
+    $("#edit-evidence-form").onsubmit = async (event) => {
+      event.preventDefault(); const form = new FormData(event.currentTarget);
+      const saved = await saveEvidence({ ...current, kind: form.get("kind"), title: form.get("title").trim(), details: form.get("details").trim() });
+      if (!saved) return; closeModal(); render();
+    };
+  });
+}
+
+async function deleteEvidence(id) {
+  const evidence = state.evidence.find((item) => item.id === id); if (!evidence) return;
+  if (!window.confirm(`Delete “${evidence.title}” from your Evidence Vault? Existing application kits may need to be regenerated.`)) return;
+  if (session && supabase) {
+    const { error } = await supabase.from("candidate_evidence").delete().eq("id", id);
+    if (error) return toast(`Evidence was not deleted: ${error.message}`);
+  }
+  state.evidence = state.evidence.filter((item) => item.id !== id);
+  toast("Evidence deleted. RoleReady will no longer use it in future analysis."); render();
 }
 
 async function openResumeImport() { openModal(`<form id="resume-import"><p>Upload a private PDF, DOCX, TXT, or LinkedIn CSV export. RoleReady reads it deterministically, then you approve individual claims. Raw files are not sent to the AI.</p><label>Resume or export<input name="file" type="file" accept=".pdf,.docx,.txt,.csv,application/pdf"></label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Read privately</button></div></form>`, () => { $("[data-action=close]").onclick = closeModal; $("#resume-import").onsubmit = async (event) => { event.preventDefault(); const file = new FormData(event.currentTarget).get("file"); if (!file?.size) return toast("Choose a supported file first."); if (!session) return toast("Sign in to import private evidence."); const button = $("#resume-import button.primary"); button.disabled = true; button.textContent = "Reading…"; try { const path = await uploadResume(file); const data = await api("/api/evidence", { fileName: file.name, mimeType: file.type, dataBase64: await fileBase64(file) }); openEvidenceReview(data.proposedEvidence, { fileName: file.name, fileType: file.type, storagePath: path }); } catch (error) { toast(error.message); button.disabled = false; button.textContent = "Read privately"; } }; }); }
@@ -367,6 +413,38 @@ function openImportJobModal(imported = {}, analyze = false) { openModal(`<form i
 
 async function saveJob(job) { const normalized = { ...job, status: legacyStatus(job.status) }; if (session && supabase) { const { data, error } = await supabase.from("saved_jobs").upsert({ ...normalized, user_id: session.user.id }).select().single(); if (error) { toast(`Role was not saved: ${error.message}`); return false; } state.jobs = [{ ...data, status: legacyStatus(data.status) }, ...state.jobs.filter((item) => item.id !== normalized.id)]; toast("Role saved to your cloud workspace."); return true; } state.jobs = [normalized, ...state.jobs.filter((item) => item.id !== normalized.id)]; toast("Saved in demo mode. Sign in to sync it."); return true; }
 
+function openEditJobModal(job) {
+  openModal(`<form id="edit-job-form"><label>Job title<input name="title" required value="${esc(job.title)}"></label><label>Company<input name="company" required value="${esc(job.company)}"></label><label>Location<input name="location" value="${esc(job.location || "")}"></label><label>Source URL<input name="url" type="url" value="${esc(job.source_url || "")}"></label><label>Job description<textarea name="description" required>${esc(job.description || "")}</textarea></label><label class="toggle"><input name="reanalyze" type="checkbox"><span>Rebuild the Proof Map with this edited listing</span></label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Save role</button></div></form>`, () => {
+    $("[data-action=close]").onclick = closeModal;
+    $("#edit-job-form").onsubmit = async (event) => {
+      event.preventDefault(); const form = new FormData(event.currentTarget);
+      const updated = { ...job, title: form.get("title").trim(), company: form.get("company").trim(), location: form.get("location").trim(), source_url: form.get("url").trim(), description: form.get("description").trim() };
+      const button = $("#edit-job-form button.primary"); button.disabled = true; button.textContent = "Saving…";
+      if (form.get("reanalyze") && session) {
+        try { const result = await api("/api/role", { job: updated }); updated.analysis = result.analysis; updated.sources = result.sources; }
+        catch (error) { button.disabled = false; button.textContent = "Save role"; return toast(`Role was not changed: ${error.message}`); }
+      }
+      if (!await saveJob(updated)) { button.disabled = false; button.textContent = "Try saving again"; return; }
+      closeModal(); render();
+    };
+  });
+}
+
+async function deleteJob(id) {
+  const job = state.jobs.find((item) => item.id === id); if (!job) return;
+  if (!window.confirm(`Delete “${job.title}” and its milestones, Proof Sprints, and application kit? This cannot be undone.`)) return;
+  if (session && supabase) {
+    const { error } = await supabase.from("saved_jobs").delete().eq("id", id);
+    if (error) return toast(`Role was not deleted: ${error.message}`);
+  }
+  state.jobs = state.jobs.filter((item) => item.id !== id);
+  state.milestones = state.milestones.filter((item) => item.saved_job_id !== id);
+  state.sprints = state.sprints.filter((item) => item.saved_job_id !== id);
+  state.kits = state.kits.filter((item) => item.saved_job_id !== id);
+  state.selectedJobId = state.jobs[0]?.id; state.view = state.jobs.length ? "home" : "discover";
+  toast("Role workspace deleted."); render();
+}
+
 async function saveStage() { const job = selectedJob(); if (!job) return; if (await saveJob({ ...job, status: $("#job-status").value })) render(); }
 
 function openSprintModal() { const job = selectedJob(); if (!job) return; const current = sprintFor(job.id); const gap = job.analysis?.proofMap?.find((item) => item.status !== "proven"); openModal(`<form id="sprint-form"><label>Sprint title<input name="title" required value="${esc(current?.title || `Proof: ${gap?.requirement || "your strongest gap"}`)}"></label><label>Deliverable<textarea name="deliverable" required>${esc(current?.deliverable || gap?.nextAction || "Build a small, reviewable artifact tied to one role requirement.")}</textarea></label><label>Checklist, one per line<textarea name="checklist">${esc((current?.checklist || ["Build the artifact", "Add a README or screenshot", "Confirm what you can honestly claim"]).map((item) => typeof item === "string" ? item : item.label).join("\n"))}</textarea></label><label>Due date<input name="due" type="date" value="${esc(current?.due_date || job.next_date || "")}"></label><label>Artifact URL (required to complete)<input name="url" type="url" value="${esc(current?.artifact_url || "")}"></label><label>Honest resume bullet after completion<textarea name="bullet" placeholder="Only describe what this finished artifact proves.">${esc(current?.honest_resume_bullet || "")}</textarea></label><label><input name="confirm-artifact" type="checkbox"> I confirm this artifact is completed, accurate, and I can discuss it. Add it to my Evidence Vault.</label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Save Proof Sprint</button></div></form>`, () => { $("[data-action=close]").onclick = closeModal; $("#sprint-form").onsubmit = async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const url = form.get("url").trim(); const complete = Boolean(url && form.get("confirm-artifact")); if (url && !complete) return toast("Confirm the completed artifact before unlocking its resume claim."); let sprint = { id: current?.id || uid(), user_id: session?.user?.id, saved_job_id: job.id, title: form.get("title").trim(), deliverable: form.get("deliverable").trim(), checklist: form.get("checklist").split("\n").map((item) => item.trim()).filter(Boolean), due_date: form.get("due") || null, artifact_url: url || null, honest_resume_bullet: complete ? form.get("bullet").trim() || null : null, target_requirement: gap?.requirement || null, evidence_id: current?.evidence_id || null, status: complete ? "complete" : "in_progress", completed_at: complete ? new Date().toISOString() : null }; if (complete) sprint = await materializeSprintEvidence(sprint); if (!await saveSprint(sprint)) return; closeModal(); render(); }; }); }
@@ -374,6 +452,17 @@ function openSprintModal() { const job = selectedJob(); if (!job) return; const 
 async function materializeSprintEvidence(sprint) { const evidence = { id: sprint.evidence_id || uid(), user_id: session?.user?.id, kind: "project", title: `Proof Sprint — ${sprint.title}`, details: `${sprint.deliverable} Completed artifact: ${sprint.artifact_url}`, source: `Proof Sprint artifact: ${sprint.artifact_url}`, confirmed: true }; if (session && supabase) { const { error } = await supabase.from("candidate_evidence").upsert(evidence); if (error) throw new Error(`Artifact evidence could not be saved: ${error.message}`); } state.evidence = [evidence, ...state.evidence.filter((item) => item.id !== evidence.id)]; return { ...sprint, evidence_id: evidence.id }; }
 
 async function saveSprint(sprint) { if (session && supabase) { const { error } = await supabase.from("proof_sprints").upsert(sprint); if (error) { toast(`Proof Sprint was not saved: ${error.message}`); return false; } } state.sprints = [sprint, ...state.sprints.filter((item) => item.id !== sprint.id)]; toast(sprint.status === "complete" ? "Proof Sprint completed and added as confirmed Evidence Vault proof." : "Proof Sprint saved."); return true; }
+
+async function deleteSprint(id) {
+  const sprint = state.sprints.find((item) => item.id === id); if (!sprint) return;
+  if (!window.confirm(`Delete “${sprint.title}”? Completed artifact evidence stays in your Evidence Vault unless you delete it separately.`)) return;
+  if (session && supabase) {
+    const { error } = await supabase.from("proof_sprints").delete().eq("id", id);
+    if (error) return toast(`Proof Sprint was not deleted: ${error.message}`);
+  }
+  state.sprints = state.sprints.filter((item) => item.id !== id);
+  toast("Proof Sprint deleted."); render();
+}
 
 function openMilestoneModal() { const job = selectedJob() || state.jobs[0]; openModal(`<form id="milestone-form"><label>Role<select name="job">${state.jobs.map((item) => `<option value="${esc(item.id)}" ${item.id === job?.id ? "selected" : ""}>${esc(item.company)} · ${esc(item.title)}</option>`).join("")}</select></label><label>Milestone<select name="kind"><option value="deadline">Application deadline</option><option value="assessment">Assessment</option><option value="interview">Interview</option><option value="follow_up">Follow-up</option></select></label><label>Date and time<input name="due" type="datetime-local" required></label><label>Note<input name="note" placeholder="What should you prepare?"></label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Schedule milestone</button></div></form>`, () => { $("[data-action=close]").onclick = closeModal; $("#milestone-form").onsubmit = async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const milestone = { id: uid(), user_id: session?.user?.id, saved_job_id: form.get("job"), kind: form.get("kind"), due_at: new Date(form.get("due")).toISOString(), note: form.get("note").trim(), reminder_enabled: true }; if (session && supabase) { const { error } = await supabase.from("milestones").insert(milestone); if (error) { toast(`Milestone was not scheduled: ${error.message}`); return; } } state.milestones = [...state.milestones, milestone].sort((a, b) => a.due_at.localeCompare(b.due_at)); toast("Milestone scheduled. Email reminders follow your preference."); closeModal(); render(); }; }); }
 
