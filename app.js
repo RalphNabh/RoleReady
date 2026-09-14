@@ -281,7 +281,7 @@ function openAtsModal() {
 }
 
 async function inspectFeed(id) {
-  let role = state.feed.find((item) => item.id === id); if (!role) return;
+  let role = state.feed.find((item) => item.id === id) || (!session && id === DEMO_JOB.id ? DEMO_JOB : null); if (!role) return;
   if (session && /greenhouse|lever/.test(role.source_url || "") && !role.description?.includes("Public internship listing")) { /* already enriched */ }
   else if (session && /greenhouse|lever/.test(role.source_url || "")) {
     try { const data = await api("/api/jobs", { sourceUrl: role.source_url }); const candidate = data.roles?.find((item) => item.title === role.title) || data.roles?.[0]; if (candidate) role = { ...role, ...candidate, company: role.company }; } catch { /* Keep the sourced tracker listing if board enrichment is unavailable. */ }
