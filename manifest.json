@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "RoleReady",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Evidence-first job analysis beside supported job postings.",
   "icons": {
     "16": "assets/icon16.png",
@@ -25,7 +25,7 @@
   "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*"],
+      "matches": ["https://*.linkedin.com/*", "https://*.greenhouse.io/*", "https://*.lever.co/*", "https://simplify.jobs/*", "https://*.google.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

@@ -1,6 +1,9 @@
 const app = document.querySelector("#app");
 const template = document.querySelector("#job-template");
+const reviewTemplate = document.querySelector("#review-template");
 let context;
+let confirmedJob = null;
+let contextSignature = "";
 const FALLBACK_PROFILE = { name: "", targetRole: "", skills: [], projects: [], experiences: [] };
 
 const words = (text) => new Set((text || "").toLowerCase().match(/[a-z][a-z+#.-]{1,}/g) || []);
@@ -50,18 +53,64 @@ async function analyze(job, profile = {}) {
   }
 }
 
+function jobSignature(job = {}) {
+  return `${job.sourceUrl || ""}\n${job.title || ""}\n${job.company || ""}\n${job.description || ""}`;
+}
+
+function reviewJob(job) {
+  const fragment = reviewTemplate.content.cloneNode(true);
+  const form = fragment.querySelector("#job-review-form");
+  form.elements.title.value = job.title || "";
+  form.elements.company.value = job.company || "";
+  form.elements.location.value = job.location || "";
+  form.elements.description.value = job.description || "";
+  fragment.querySelector("#capture-confidence").textContent = job.extraction === "structured JobPosting + page confirmation"
+    ? "Structured JobPosting data was found. Review it before RoleReady analyzes your evidence."
+    : "RoleReady captured visible page text. Edit anything that is incomplete before you continue.";
+  app.replaceChildren(fragment);
+  document.querySelector("#job-review-form").onsubmit = (event) => {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    confirmedJob = {
+      ...job,
+      title: values.get("title").trim(),
+      company: values.get("company").trim(),
+      location: values.get("location").trim(),
+      description: values.get("description").trim()
+    };
+    render().catch(showRenderError);
+  };
+}
+
+function showRenderError(error) {
+  console.error("RoleReady panel could not render.", error);
+  app.innerHTML = `<section class="empty"><span>✦</span><h1>RoleReady is ready</h1><p>Open or refresh a supported job posting, then reopen this panel.</p></section>`;
+}
+
 async function render() {
-  const { currentJob: job, candidateProfile: profile } = context;
+  const { currentJob, candidateProfile: profile } = context;
+  const currentSignature = jobSignature(currentJob);
+  if (currentSignature !== contextSignature) {
+    contextSignature = currentSignature;
+    confirmedJob = null;
+  }
+  const job = confirmedJob || currentJob;
   if (!job?.description) {
     app.innerHTML = `<section class="empty"><span>✦</span><h1>Open a job posting</h1><p>Visit LinkedIn, Greenhouse, Lever, or Simplify Jobs. RoleReady will read the role in context.</p></section>`;
     return;
   }
+  if (!confirmedJob) return reviewJob(job);
   const result = await analyze(job, profile);
   const fragment = template.content.cloneNode(true);
   fragment.querySelector(".job-title").textContent = job.title;
   fragment.querySelector(".company").textContent = `${job.company}${job.location ? ` · ${job.location}` : ""}`;
   fragment.querySelectorAll(".score").forEach((el) => el.textContent = `${result.score}%`);
   fragment.querySelector(".score-note").textContent = result.score > 70 ? "Strong application target" : "Worth a strategic look";
+  const mode = fragment.querySelector("#analysis-mode");
+  mode.classList.add(result.mode === "live" ? "live" : "offline");
+  mode.textContent = result.mode === "live"
+    ? "Live paired analysis — based on confirmed cloud evidence."
+    : "Offline preview — connect your workspace to use confirmed cloud evidence and live research.";
   fragment.querySelector(".strengths").innerHTML = result.strengths.map((x) => `<li>${esc(x)}</li>`).join("");
   fragment.querySelector(".gaps").innerHTML = result.gaps.map((x) => `<li>${esc(x)}</li>`).join("");
   fragment.querySelector(".recruiter-lens").textContent = result.recruiterLens || result.gaps[0];
@@ -93,8 +142,5 @@ chrome.runtime.sendMessage({ type: "GET_CONTEXT" }, (data) => {
   } else {
     context = { candidateProfile: data?.candidateProfile || FALLBACK_PROFILE, currentJob: data?.currentJob || null };
   }
-  render().catch((error) => {
-    console.error("RoleReady panel could not render.", error);
-    app.innerHTML = `<section class="empty"><span>✦</span><h1>RoleReady is ready</h1><p>Open or refresh a supported job posting, then reopen this panel.</p></section>`;
-  });
+  render().catch(showRenderError);
 });

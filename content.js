@@ -41,9 +41,24 @@ function extractJob() {
   return { title: title || "Job posting", company: company || "Company", location, description, requirements: requirements(description), sourceUrl: window.location.href, extraction: posting ? "structured JobPosting + page confirmation" : "page text" };
 }
 
-function sendContext() { chrome.runtime.sendMessage({ type: "JOB_CONTEXT", job: extractJob() }); }
+let extractionTimer;
+let lastSignature = "";
+
+function sendContext() {
+  const job = extractJob();
+  const signature = `${job.sourceUrl}\n${job.title}\n${job.company}\n${job.description.slice(0, 800)}`;
+  if (signature === lastSignature) return;
+  lastSignature = signature;
+  chrome.runtime.sendMessage({ type: "JOB_CONTEXT", job });
+}
+
+function scheduleContext() {
+  clearTimeout(extractionTimer);
+  extractionTimer = setTimeout(sendContext, 500);
+}
+
 sendContext();
-new MutationObserver(() => sendContext()).observe(document.documentElement, { childList: true, subtree: true });
+new MutationObserver(scheduleContext).observe(document.documentElement, { childList: true, subtree: true });
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type !== "HIGHLIGHT_REQUIREMENT") return;

@@ -4,9 +4,23 @@
   <body>
     <header><div class="brand"><img class="brand-mark" src="assets/role-ready-mark.svg" alt="RoleReady"><div><span>RoleReady</span><small>LIVE JOB CONTEXT</small></div></div><div class="toolbar"><button id="dashboard" title="Career Command Center" aria-label="Open RoleReady workspace">↗</button><button id="settings" title="Candidate profile" aria-label="Edit candidate profile">⚙</button></div></header>
     <main id="app"><section class="loading"><div class="pulse"></div><p>Reading this opportunity…</p></section></main>
+    <template id="review-template">
+      <section class="hero"><p class="eyebrow">REVIEW JOB CAPTURE</p><h1>Confirm the listing first.</h1><p class="company">RoleReady will use only the details you approve.</p></section>
+      <section class="review-card">
+        <form id="job-review-form">
+          <label>Job title<input name="title" required maxlength="220"></label>
+          <label>Company<input name="company" required maxlength="220"></label>
+          <label>Location<input name="location" maxlength="240"></label>
+          <label>Job description<textarea name="description" required maxlength="12000"></textarea></label>
+          <p class="helper" id="capture-confidence"></p>
+          <button class="primary" type="submit">Analyze confirmed listing</button>
+        </form>
+      </section>
+    </template>
     <template id="job-template">
       <section class="hero"><p class="eyebrow">ROLE DETECTED</p><h1 class="job-title"></h1><p class="company"></p></section>
       <section class="score-card"><div><p class="label">EVIDENCE FIT</p><strong class="score"></strong><span class="score-note"></span></div><div class="ring"><span class="score"></span></div></section>
+      <p class="analysis-mode" id="analysis-mode"></p>
       <section class="insight strengths-wrap"><p class="eyebrow">ALREADY PROVEN</p><h2>Why this is a credible fit</h2><ul class="strengths"></ul></section>
       <section class="insight gaps-wrap"><p class="eyebrow">CLOSE THE GAP</p><h2>What to strengthen first</h2><ul class="gaps"></ul></section>
       <section class="lens"><p class="eyebrow">RECRUITER LENS</p><h2>What they may question</h2><p class="recruiter-lens"></p></section>
