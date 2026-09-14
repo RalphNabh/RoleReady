@@ -1,25 +1,36 @@
 import { CHALLENGES } from "../shared/challenges.js";
-import { ASSESSMENT_TESTS, runnerSource, testPasses } from "../lib/assessment-tests.js";
+import { ASSESSMENT_TESTS, batchTestPasses, runnerSource } from "../lib/assessment-tests.js";
 import { allow, allowedOrigin, clean, json, verifiedUser } from "../lib/server.js";
 
 const LANGUAGES = {
-  javascript: { runtime: "javascript", file: "main.js" },
-  typescript: { runtime: "typescript", file: "main.ts" },
-  python: { runtime: "python", file: "main.py" },
-  java: { runtime: "java", file: "Main.java" },
-  cpp: { runtime: "c++", file: "main.cpp" },
-  csharp: { runtime: "csharp", file: "Main.cs" }
+  javascript: { judge0LanguageId: 63 },
+  typescript: { judge0LanguageId: 74, compilerOptions: "--target ES2015 --lib ES2015,DOM" },
+  python: { judge0LanguageId: 71 },
+  java: { judge0LanguageId: 62 },
+  cpp: { judge0LanguageId: 52 },
+  csharp: { judge0LanguageId: 51 }
 };
 
 async function execute(selected, content) {
-  const response = await fetch("https://emkc.org/api/v2/piston/execute", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-      language: selected.runtime, version: "*", files: [{ name: selected.file, content }], run_timeout: 3000, compile_timeout: 10000
+  const baseUrl = clean(process.env.JUDGE0_URL || "https://ce.judge0.com", 400).replace(/\/$/, "");
+  const token = clean(process.env.JUDGE0_AUTH_TOKEN, 1000);
+  const response = await fetch(`${baseUrl}/submissions?base64_encoded=false&wait=true`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(token ? { "X-Auth-Token": token } : {}) },
+    body: JSON.stringify({
+      source_code: content, language_id: selected.judge0LanguageId,
+      ...(selected.compilerOptions ? { compiler_options: selected.compilerOptions } : {}),
+      cpu_time_limit: 3, wall_time_limit: 5, memory_limit: 128000
     })
   });
   if (!response.ok) throw new Error("The assessment sandbox is busy. Please retry shortly.");
   const result = await response.json();
-  return { compiled: !result.compile, exitCode: result.run?.code, output: clean(result.run?.output || result.compile?.output || result.message || "", 8000) };
+  const statusId = Number(result.status?.id);
+  return {
+    compiled: !result.compile_output,
+    exitCode: statusId === 3 ? 0 : 1,
+    output: clean(result.stdout || result.stderr || result.compile_output || result.message || result.status?.description || "", 8000)
+  };
 }
 
 export default async function handler(req, res) {
@@ -35,21 +46,18 @@ export default async function handler(req, res) {
   const tests = challenge ? ASSESSMENT_TESTS[challenge.id] : null;
   const selected = LANGUAGES[language];
   if (!selected || !challenge || !tests || !code) return json(res, 400, { error: "Choose a supported language, challenge, and solution." });
-  const results = [];
   try {
-    for (const test of tests) {
-      const execution = await execute(selected, runnerSource(challenge, language, code, test));
-      if (!execution.compiled || execution.exitCode !== 0) {
-        return json(res, 200, { passed: false, output: execution.output || "Your program did not finish successfully.", hiddenSummary: "Compilation/runtime feedback shown. Hidden test values remain private.", feedback: { kind: "runtime", nextStep: "Fix the compiler or runtime message, then retry." } });
-      }
-      results.push({ passed: testPasses(challenge, test, execution.output), output: execution.output });
+    const execution = await execute(selected, runnerSource(challenge, language, code, tests));
+    if (!execution.compiled || execution.exitCode !== 0) {
+      return json(res, 200, { passed: false, output: execution.output || "Your program did not finish successfully.", hiddenSummary: "Compiler and runtime feedback are shown; RoleReady never stores your raw code.", feedback: { kind: "runtime", nextStep: "Fix the compiler or runtime message, then retry." } });
     }
-    const passed = results.every((item) => item.passed);
-    const passedCount = results.filter((item) => item.passed).length;
+    const results = batchTestPasses(challenge, tests, execution.output);
+    const passed = results.every(Boolean);
+    const passedCount = results.filter(Boolean).length;
     return json(res, 200, {
       passed,
-      output: passed ? "All hidden checks passed." : `Passed ${passedCount} of ${results.length} hidden checks.`,
-      hiddenSummary: "RoleReady checks private cases but never stores your raw code.",
+      output: passed ? "All server-evaluated checks passed." : `Passed ${passedCount} of ${results.length} server-evaluated checks.`,
+      hiddenSummary: "RoleReady evaluates checks on the server and never stores your raw code.",
       feedback: passed ? { kind: "success", nextStep: "Explain your time/space complexity aloud before moving to the next challenge." } : { kind: "logic", nextStep: "Recheck edge cases, output order, and the exact function contract." }
     });
   } catch (error) {

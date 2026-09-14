@@ -32,7 +32,7 @@ let chunks = [];
 let recognition;
 let cameraStream;
 let state = {
-  profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], connections: [], extensionConnections: [], onboarding: { step: 1, draft: {}, repos: [], proposals: [] }, onboardingShown: false, feed: [], view: "home", selectedJobId: DEMO_JOB.id, selectedChallengeId: "pair-index", language: "javascript", code: "", interview: null, feedRequested: false
+  profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], connections: [], extensionConnections: [], reminderStatus: null, onboarding: { step: 1, draft: {}, repos: [], proposals: [] }, onboardingShown: false, feed: [], view: "home", selectedJobId: DEMO_JOB.id, selectedChallengeId: "pair-index", language: "javascript", code: "", interview: null, feedRequested: false
 };
 
 async function setup() {
@@ -64,7 +64,7 @@ async function setup() {
 }
 
 function demoState() {
-  state = { ...state, profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], connections: [], extensionConnections: [], selectedJobId: DEMO_JOB.id };
+  state = { ...state, profile: { ...DEMO_PROFILE }, evidence: [...DEMO_EVIDENCE], jobs: [DEMO_JOB], milestones: [], sprints: [], kits: [], connections: [], extensionConnections: [], reminderStatus: null, selectedJobId: DEMO_JOB.id };
 }
 
 async function hydrate() {
@@ -83,6 +83,7 @@ async function hydrate() {
   const [profile, evidence, jobs, milestones, sprints, kits, connections, extensionConnections] = results.map((result) => result.data || []);
   state.profile = profile || { ...DEMO_PROFILE, onboarding_completed: false, onboarding: {}, full_name: session.user.user_metadata?.user_name || session.user.email?.split("@")[0] || "Candidate" };
   state.evidence = evidence; state.jobs = jobs.map((job) => ({ ...job, status: legacyStatus(job.status) })); state.milestones = milestones; state.sprints = sprints; state.kits = kits; state.connections = Array.isArray(connections) ? connections : []; state.extensionConnections = Array.isArray(extensionConnections) ? extensionConnections : [];
+  try { state.reminderStatus = await api("/api/reminders?status=1", undefined, { method: "GET" }); } catch { state.reminderStatus = { available: false }; }
   if (!state.jobs.some((job) => job.id === state.selectedJobId)) state.selectedJobId = state.jobs[0]?.id;
 }
 
@@ -154,11 +155,19 @@ function renderPipeline() {
 
 function renderVault() {
   const items = state.evidence.filter((item) => item.confirmed);
-  const github = connectionFor("github"); const resume = connectionFor("resume"); const linkedIn = connectionFor("linkedin_reference");
+  const github = connectionFor("github");
+  const resume = connectionFor("resume");
+  const linkedInExport = connectionFor("linkedin_export");
+  const linkedIn = connectionFor("linkedin_reference");
+  const importedFile = resume || linkedInExport;
   const sourceState = (connection, label, copy, action, primary = false) => `<article class="source-connection ${connection ? "connected" : ""}"><div><span class="source-icon">${connection ? "✓" : "＋"}</span><div><b>${label}</b><small>${connection ? `${connection.external_id || "Connected"} · last synced ${shortDate(connection.last_synced_at)}` : copy}</small></div></div>${actionButton(connection ? (action === "refresh-github" ? "Refresh" : "Update") : "Connect", action, primary ? "primary" : "secondary")}</article>`;
   const extensionConnections = state.extensionConnections || [];
   const extensionCard = `<section class="surface extension-connections"><div class="section-head"><div><p class="eyebrow">PAIRED EXTENSION</p><h2>Chrome connections</h2></div>${actionButton("Add connection", "extension-key", "secondary")}</div><p class="source-disclaimer">A connection can read only your approved evidence. Revoke it if you change browsers or lose a device.</p>${extensionConnections.length ? `<div class="extension-connection-list">${extensionConnections.map((connection) => `<article><div><b>${esc(connection.extension_id === "chrome-web-store-pending" ? "RoleReady Chrome extension" : connection.extension_id)}</b><small>Created ${shortDate(connection.created_at)} · ${connection.last_used_at ? `last used ${shortDate(connection.last_used_at)}` : "not used yet"}</small></div><button class="mini-control danger-control" data-extension-revoke="${esc(connection.id)}" aria-label="Revoke Chrome connection">Revoke</button></article>`).join("")}</div>` : `<div class="empty compact-empty"><strong>No Chrome connection yet</strong>Create a one-time key, then paste it in Extension Options.</div>`}</section>`;
-  return `<section class="notice"><p class="eyebrow">TRUTH-FIRST PROFILE</p><h3>Only approved facts can shape a Proof Map.</h3><p>RoleReady keeps source material separate from evidence. Connect once, then refresh public GitHub projects or replace an export whenever your work changes.</p></section><section class="vault-grid"><div class="card"><p class="eyebrow">TARGET</p><h2>${esc(state.profile.target_role || "Your next role")}</h2><p>${esc((state.profile.skills || []).join(" · ") || "Add skills you can genuinely discuss.")}</p>${actionButton("Update my setup", "onboarding", "primary")}${actionButton("Connect Chrome", "extension-key", "link")}</div><div class="card"><div class="section-head"><div><p class="eyebrow">VERIFIED EVIDENCE</p><h2>Projects and experience</h2></div><div class="inline-actions">${actionButton("Import resume", "resume")}${actionButton("GitHub projects", "github")}${actionButton("Add evidence", "evidence", "primary")}</div></div>${items.length ? items.map((entry) => `<article class="evidence"><small>${esc(entry.kind || "evidence").toUpperCase()} · ${esc(entry.source || "User-confirmed")}</small><h3>${esc(entry.title)}</h3><p>${esc(entry.details)}</p></article>`).join("") : `<div class="empty"><strong>Your vault is empty</strong>Add confirmed work before asking RoleReady to rank a job.</div>`}</div></section><section class="surface connections-surface"><div class="section-head"><div><p class="eyebrow">CONNECTED SOURCES</p><h2>Keep your evidence current.</h2></div>${actionButton("Guided setup", "onboarding", "link")}</div>${sourceState(github, "Public GitHub", "Choose public repositories and refresh their README-based suggestions.", "refresh-github", true)}${sourceState(resume, "Private resume or export", "Upload a new resume or LinkedIn CSV when it changes.", "onboarding")}${sourceState(linkedIn, "LinkedIn reference", "Save a profile link only—RoleReady never scrapes LinkedIn.", "onboarding")}</section>${extensionCard}<section class="card reminder-card"><div><p class="eyebrow">DEADLINE EMAILS</p><h2>Stay ahead without browser notifications.</h2><p>Get an email 3 days, 1 day, and the morning of a saved deadline.</p></div><label class="toggle"><input id="email-reminders" type="checkbox" ${state.profile.email_reminders ? "checked" : ""}><span>Enable email reminders</span></label></section>`;
+  const remindersAvailable = state.reminderStatus?.available === true;
+  const reminderCopy = remindersAvailable
+    ? "Get an email three days, one day, and on the due day. Timing uses your timezone’s calendar date and RoleReady’s daily delivery run."
+    : "Email delivery is not configured on this deployment yet. Add Resend, a verified sender, and CRON_SECRET before enabling it.";
+  return `<section class="notice"><p class="eyebrow">TRUTH-FIRST PROFILE</p><h3>Only approved facts can shape a Proof Map.</h3><p>RoleReady keeps source material separate from evidence. Connect once, then refresh public GitHub projects or replace an export whenever your work changes.</p></section><section class="vault-grid"><div class="card"><p class="eyebrow">TARGET</p><h2>${esc(state.profile.target_role || "Your next role")}</h2><p>${esc((state.profile.skills || []).join(" · ") || "Add skills you can genuinely discuss.")}</p>${actionButton("Update my setup", "onboarding", "primary")}${actionButton("Connect Chrome", "extension-key", "link")}</div><div class="card"><div class="section-head"><div><p class="eyebrow">VERIFIED EVIDENCE</p><h2>Projects and experience</h2></div><div class="inline-actions">${actionButton("Import resume", "resume")}${actionButton("GitHub projects", "github")}${actionButton("Add evidence", "evidence", "primary")}</div></div>${items.length ? items.map((entry) => `<article class="evidence"><small>${esc(entry.kind || "evidence").toUpperCase()} · ${esc(entry.source || "User-confirmed")}</small><h3>${esc(entry.title)}</h3><p>${esc(entry.details)}</p></article>`).join("") : `<div class="empty"><strong>Your vault is empty</strong>Add confirmed work before asking RoleReady to rank a job.</div>`}</div></section><section class="surface connections-surface"><div class="section-head"><div><p class="eyebrow">CONNECTED SOURCES</p><h2>Keep your evidence current.</h2></div>${actionButton("Guided setup", "onboarding", "link")}</div>${sourceState(github, "Public GitHub", "Choose public repositories and refresh their README-based suggestions.", "refresh-github", true)}${sourceState(importedFile, resume ? "Private resume" : "LinkedIn CSV export", "Upload a private resume or LinkedIn CSV whenever it changes.", "onboarding")}${sourceState(linkedIn, "LinkedIn reference", "Save a profile link only—RoleReady never scrapes LinkedIn.", "onboarding")}</section>${extensionCard}<section class="card reminder-card"><div><p class="eyebrow">DEADLINE EMAILS</p><h2>Stay ahead without browser notifications.</h2><p>${reminderCopy}</p></div><label class="toggle"><input id="email-reminders" type="checkbox" ${state.profile.email_reminders ? "checked" : ""} ${remindersAvailable ? "" : "disabled"}><span>${remindersAvailable ? "Enable email reminders" : "Email delivery needs setup"}</span></label></section>`;
 }
 
 function sprintFor(jobId) { return state.sprints.find((sprint) => sprint.saved_job_id === jobId && sprint.status !== "complete") || state.sprints.find((sprint) => sprint.saved_job_id === jobId); }
@@ -179,8 +188,13 @@ function kitPreview(kit, job) {
 }
 
 function renderAssessment() {
-  const job = selectedJob(); const challenges = recommendedChallenges(job || {}); const challenge = CHALLENGES[state.selectedChallengeId] || challenges[0]; const language = state.language || "javascript"; const code = state.code || challenge.starter[language];
-  return `<section class="assessment-intro"><button class="back-link" data-action="back-job">← Job workspace</button><p class="eyebrow">ROLE-AWARE CODING ASSESSMENT</p><h2>Practice the signals this role is likely to test.</h2><p>Original challenges only. Related LeetCode links are topic practice, never a claim about an employer’s exact OA.</p></section><section class="assessment-path">${challenges.map((item, index) => `<button data-challenge="${item.id}" class="${challenge.id === item.id ? "active" : ""}"><span>${index + 1}</span><b>${esc(item.title)}</b><small>${esc(item.concept)} · ${item.minutes} min</small></button>`).join("")}</section><section class="assessment-shell"><aside class="surface"><label>Language<select id="language-select">${Object.entries({ javascript: "JavaScript", typescript: "TypeScript", python: "Python", java: "Java", cpp: "C++", csharp: "C#" }).map(([id, label]) => `<option value="${id}" ${id === language ? "selected" : ""}>${label}</option>`).join("")}</select></label><p class="eyebrow">${esc(challenge.concept)}</p><h2>${esc(challenge.title)}</h2><p>${esc(challenge.prompt)}</p><p class="assessment-contract">Implement the provided <code>solve</code> function. RoleReady runs private cases server-side; your raw code is not saved.</p><a class="practice-link" href="https://leetcode.com/problemset/?search=${encodeURIComponent(challenge.leetcodeQuery)}" target="_blank" rel="noreferrer">Related LeetCode topic ↗</a></aside><section class="surface"><div class="section-head"><div><p class="eyebrow">${esc(language.toUpperCase())} EDITOR</p><h2>Write your solution</h2></div>${actionButton("Run hidden checks", "run-code", "primary")}</div><textarea class="editor" id="code" spellcheck="false">${esc(code)}</textarea><pre class="output" id="code-output">${esc(state.assessmentOutput || "Choose a challenge, write a solution, then run hidden checks.")}</pre></section></section>`;
+  const job = selectedJob();
+  const challenges = recommendedChallenges(job || {});
+  const challenge = CHALLENGES[state.selectedChallengeId] || challenges[0];
+  const language = state.language || "javascript";
+  const code = state.code || challenge.starter[language];
+  const languages = { javascript: "JavaScript", typescript: "TypeScript", python: "Python", java: "Java", cpp: "C++", csharp: "C#" };
+  return `<section class="assessment-intro"><button class="back-link" data-action="back-job">← Job workspace</button><p class="eyebrow">ROLE-AWARE CODING ASSESSMENT</p><h2>Practice the signals this role is likely to test.</h2><p>Original challenges only. Related LeetCode links are topic practice, never a claim about an employer’s exact OA.</p></section><section class="assessment-path">${challenges.map((item, index) => `<button data-challenge="${item.id}" class="${challenge.id === item.id ? "active" : ""}"><span>${index + 1}</span><b>${esc(item.title)}</b><small>${esc(item.concept)} · ${item.minutes} min</small></button>`).join("")}</section><section class="assessment-shell"><aside class="surface"><label>Language<select id="language-select">${Object.entries(languages).map(([id, label]) => `<option value="${id}" ${id === language ? "selected" : ""}>${label}</option>`).join("")}</select></label><p class="eyebrow">${esc(challenge.concept)}</p><h2>${esc(challenge.title)}</h2><p>${esc(challenge.prompt)}</p><p class="assessment-contract">Implement the provided <code>solve</code> function. RoleReady evaluates checks on the server and never stores your raw code.</p><a class="practice-link" href="https://leetcode.com/problemset/?search=${encodeURIComponent(challenge.leetcodeQuery)}" target="_blank" rel="noreferrer">Related LeetCode topic ↗</a></aside><section class="surface"><div class="section-head"><div><p class="eyebrow">${esc(language.toUpperCase())} EDITOR</p><h2>Write your solution</h2></div>${actionButton("Run assessment", "run-code", "primary")}</div><textarea class="editor" id="code" spellcheck="false">${esc(code)}</textarea><pre class="output" id="code-output">${esc(state.assessmentOutput || "Choose a challenge, write a solution, then run the server-evaluated checks.")}</pre></section></section>`;
 }
 
 function renderInterview() {
@@ -275,7 +289,13 @@ async function inspectFeed(id) {
   openImportJobModal(role, true);
 }
 
-function openModal(html, bind) { $("#modal-root").innerHTML = `<div class="modal-backdrop"><section class="modal"><header><div><p class="eyebrow">ROLE READY</p><h2>Update your workspace</h2></div><button class="close" aria-label="Close">×</button></header>${html}</section></div>`; $(".close").onclick = closeModal; $(".modal-backdrop").onclick = (event) => { if (event.target.classList.contains("modal-backdrop")) closeModal(); }; bind?.(); }
+function openModal(html, bind, onDismiss) {
+  const dismiss = () => { onDismiss?.(); closeModal(); };
+  $("#modal-root").innerHTML = `<div class="modal-backdrop"><section class="modal"><header><div><p class="eyebrow">ROLE READY</p><h2>Update your workspace</h2></div><button class="close" aria-label="Close">×</button></header>${html}</section></div>`;
+  $(".close").onclick = dismiss;
+  $(".modal-backdrop").onclick = (event) => { if (event.target.classList.contains("modal-backdrop")) dismiss(); };
+  bind?.();
+}
 function closeModal() { $("#modal-root").innerHTML = ""; }
 
 function openProfileModal() { openModal(`<form id="profile-form"><label>Name<input name="name" required value="${esc(state.profile.full_name || "")}"></label><label>Target role<input name="target" required value="${esc(state.profile.target_role || "")}"></label><label>Skills, comma-separated<input name="skills" value="${esc((state.profile.skills || []).join(", "))}"></label><label>Timezone<input name="timezone" value="${esc(state.profile.timezone || "America/Toronto")}"></label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Save target</button></div></form>`, () => { $("[data-action=close]").onclick = closeModal; $("#profile-form").onsubmit = async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); if (await updateProfile({ full_name: form.get("name").trim(), target_role: form.get("target").trim(), skills: form.get("skills").split(",").map((item) => item.trim()).filter(Boolean), timezone: form.get("timezone").trim() || "America/Toronto" })) closeModal(); }; }); }
@@ -357,7 +377,7 @@ async function prepareGithubProposals() { const selected = $$(".repo-select-list
 async function readOnboardingFile() { const file = $("#onboarding-file")?.files?.[0]; if (!file) return toast("Choose a PDF, DOCX, TXT, or LinkedIn CSV export first."); const button = $("#onboarding-read-file"); button.disabled = true; button.textContent = "Reading…"; try { await discardOnboardingResume(); const path = await uploadResume(file); const data = await api("/api/evidence", { fileName: file.name, mimeType: file.type, dataBase64: await fileBase64(file) }); Object.assign(onboardingDraft(), { resumeImport: { fileName: file.name, fileType: file.type, storagePath: path }, resumeProposals: data.proposedEvidence }); renderOnboarding(); } catch (error) { toast(error.message); button.disabled = false; button.textContent = "Read privately"; } }
 async function finishOnboarding(event) { event.preventDefault(); const form = new FormData(event.currentTarget); const draft = onboardingDraft(); const proposals = [...(draft.githubProposals || []), ...(draft.resumeProposals || [])]; const approved = proposals.flatMap((proposal, index) => form.get(`use-${index}`) ? [{ id: uid(), user_id: session.user.id, kind: form.get(`kind-${index}`), title: form.get(`title-${index}`).trim(), details: form.get(`details-${index}`).trim(), source: proposal.source || "Connected source", confirmed: true }] : []); let linkedInUrl = "";
   if (draft.linkedinUrl) { try { const url = new URL(draft.linkedinUrl); if (url.protocol !== "https:") throw new Error(); linkedInUrl = url.href; } catch { return toast("Use a valid https LinkedIn URL, or leave it blank."); } }
-  try { for (const entry of approved) await saveEvidence(entry); if (draft.resumeImport) { await supabase.from("evidence_imports").insert({ id: uid(), user_id: session.user.id, storage_path: draft.resumeImport.storagePath, file_name: draft.resumeImport.fileName, file_type: draft.resumeImport.fileType, parse_status: "ready", proposed_evidence: draft.resumeProposals || [] }); await saveConnection("resume", { externalId: draft.resumeImport.fileName, metadata: { storagePath: draft.resumeImport.storagePath, fileType: draft.resumeImport.fileType } }); }
+  try { if (!await saveEvidenceBatch(approved)) return; if (draft.resumeImport) await saveEvidenceImport(draft.resumeImport, draft.resumeProposals || []);
     if (linkedInUrl) { const url = new URL(linkedInUrl); await saveConnection("linkedin_reference", { externalId: url.hostname, metadata: { url: url.href, scraped: false } }); }
     await updateProfile({ full_name: draft.name || state.profile.full_name, target_role: draft.targetRole || state.profile.target_role, onboarding: { ...state.profile.onboarding, locations: draft.locations || "", graduation: draft.graduation || "" }, onboarding_completed: true }); state.onboarding = { step: 1, draft: {}, repos: [], proposals: [] }; $("#modal-root").innerHTML = ""; state.view = "vault"; render(); toast(`${approved.length} approved fact${approved.length === 1 ? "" : "s"} added to your private Evidence Vault.`); } catch (error) { toast(error.message); }
 }
@@ -365,13 +385,19 @@ async function finishOnboarding(event) { event.preventDefault(); const form = ne
 function openEvidenceModal() { openModal(`<form id="evidence-form"><label>Evidence type<select name="kind"><option value="project">Project</option><option value="experience">Experience</option><option value="education">Education</option><option value="skill">Skill / certification</option></select></label><label>Title<input name="title" required placeholder="CampusConnect"></label><label>What did you personally do and what happened?<textarea name="details" required placeholder="Built… decided… outcome…"></textarea></label><label>Source link (optional)<input name="sourceUrl" type="url" placeholder="https://github.com/you/project"></label><label><input type="checkbox" name="confirm" required> I confirm this is accurate and I can discuss it.</label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Save confirmed evidence</button></div></form>`, () => { $("[data-action=close]").onclick = closeModal; $("#evidence-form").onsubmit = async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const saved = await saveEvidence({ id: uid(), kind: form.get("kind"), title: form.get("title").trim(), details: form.get("details").trim(), source: form.get("sourceUrl").trim() ? `Candidate source: ${form.get("sourceUrl").trim()}` : "User-confirmed", confirmed: true }); if (!saved) return; closeModal(); state.view = "vault"; render(); }; }); }
 
 async function saveEvidence(entry) {
-  const normalized = { ...entry, user_id: session?.user?.id || entry.user_id };
+  return saveEvidenceBatch([entry]);
+}
+
+async function saveEvidenceBatch(entries) {
+  const normalized = entries.map((entry) => ({ ...entry, user_id: session?.user?.id || entry.user_id }));
+  if (!normalized.length) return true;
   if (session && supabase) {
     const { error } = await supabase.from("candidate_evidence").upsert(normalized);
     if (error) { toast(`Evidence was not saved: ${error.message}`); return false; }
-    toast("Confirmed evidence saved securely.");
+    toast(`${normalized.length} confirmed item${normalized.length === 1 ? "" : "s"} saved securely.`);
   } else toast("Saved in demo mode. Sign in to sync.");
-  state.evidence = [normalized, ...state.evidence.filter((item) => item.id !== normalized.id)];
+  const ids = new Set(normalized.map((item) => item.id));
+  state.evidence = [...normalized, ...state.evidence.filter((item) => !ids.has(item.id))];
   return true;
 }
 
@@ -398,12 +424,82 @@ async function deleteEvidence(id) {
   toast("Evidence deleted. RoleReady will no longer use it in future analysis."); render();
 }
 
-async function openResumeImport() { openModal(`<form id="resume-import"><p>Upload a private PDF, DOCX, TXT, or LinkedIn CSV export. RoleReady reads it deterministically, then you approve individual claims. Raw files are not sent to the AI.</p><label>Resume or export<input name="file" type="file" accept=".pdf,.docx,.txt,.csv,application/pdf"></label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Read privately</button></div></form>`, () => { $("[data-action=close]").onclick = closeModal; $("#resume-import").onsubmit = async (event) => { event.preventDefault(); const file = new FormData(event.currentTarget).get("file"); if (!file?.size) return toast("Choose a supported file first."); if (!session) return toast("Sign in to import private evidence."); const button = $("#resume-import button.primary"); button.disabled = true; button.textContent = "Reading…"; try { const path = await uploadResume(file); const data = await api("/api/evidence", { fileName: file.name, mimeType: file.type, dataBase64: await fileBase64(file) }); openEvidenceReview(data.proposedEvidence, { fileName: file.name, fileType: file.type, storagePath: path }); } catch (error) { toast(error.message); button.disabled = false; button.textContent = "Read privately"; } }; }); }
+async function openResumeImport() {
+  openModal(`<form id="resume-import"><p>Upload a private PDF, DOCX, TXT, or LinkedIn CSV export. RoleReady reads it deterministically, then you approve individual claims. Raw files are not sent to the AI.</p><label>Resume or export<input name="file" type="file" accept=".pdf,.docx,.txt,.csv,application/pdf"></label><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Read privately</button></div></form>`, () => {
+    $("[data-action=close]").onclick = closeModal;
+    $("#resume-import").onsubmit = async (event) => {
+      event.preventDefault(); const file = new FormData(event.currentTarget).get("file");
+      if (!file?.size) return toast("Choose a supported file first.");
+      if (!session) return toast("Sign in to import private evidence.");
+      const button = $("#resume-import button.primary"); button.disabled = true; button.textContent = "Reading…";
+      try {
+        const path = await uploadResume(file);
+        state.pendingPrivateUpload = { storagePath: path, fileName: file.name, fileType: file.type };
+        const data = await api("/api/evidence", { fileName: file.name, mimeType: file.type, dataBase64: await fileBase64(file) });
+        openEvidenceReview(data.proposedEvidence, { fileName: file.name, fileType: file.type, storagePath: path });
+      } catch (error) {
+        await discardPendingPrivateUpload();
+        toast(error.message); button.disabled = false; button.textContent = "Read privately";
+      }
+    };
+  });
+}
 
 async function uploadResume(file) { const path = `${session.user.id}/${uid()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`; const { error } = await supabase.storage.from("resume-files").upload(path, file, { upsert: false }); if (error) throw new Error(`Private upload failed: ${error.message}`); return path; }
 function fileBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1]); reader.onerror = reject; reader.readAsDataURL(file); }); }
 
-function openEvidenceReview(proposals, importMeta = {}) { openModal(`<form id="evidence-review"><p>Review each proposed item. Unchecked or edited items will not influence your fit score.</p><div class="proposal-list">${proposals.map((item, index) => `<article><label><input type="checkbox" name="use-${index}" checked> Use this item</label><label>Type<select name="kind-${index}">${["project", "experience", "education", "skill"].map((kind) => `<option ${item.kind === kind ? "selected" : ""}>${kind}</option>`).join("")}</select></label><label>Title<input name="title-${index}" value="${esc(item.title)}"></label><label>Details<textarea name="details-${index}">${esc(item.details)}</textarea></label></article>`).join("")}</div><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Confirm selected evidence</button></div></form>`, () => { $("[data-action=close]").onclick = closeModal; $("#evidence-review").onsubmit = async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const selected = []; for (let index = 0; index < proposals.length; index++) if (form.get(`use-${index}`)) selected.push({ id: uid(), kind: form.get(`kind-${index}`), title: form.get(`title-${index}`).trim(), details: form.get(`details-${index}`).trim(), source: importMeta.fileName ? `Resume import: ${importMeta.fileName}` : proposals[index].source || "GitHub import", confirmed: true }); for (const entry of selected) await saveEvidence(entry); if (session && importMeta.fileName) await supabase.from("evidence_imports").insert({ id: uid(), user_id: session.user.id, storage_path: importMeta.storagePath || null, file_name: importMeta.fileName, file_type: importMeta.fileType || "text/plain", parse_status: "ready", proposed_evidence: proposals }); closeModal(); state.view = "vault"; render(); toast(`${selected.length} confirmed item${selected.length === 1 ? "" : "s"} added.`); }; }); }
+function isLinkedInExport(importMeta = {}) { return importMeta.fileType === "text/csv" || /\.csv$/i.test(importMeta.fileName || ""); }
+function importProvider(importMeta = {}) { return isLinkedInExport(importMeta) ? "linkedin_export" : "resume"; }
+function importSource(importMeta = {}) { return `${isLinkedInExport(importMeta) ? "LinkedIn export" : "Resume import"}: ${importMeta.fileName}`; }
+async function discardPendingPrivateUpload(importMeta = {}) {
+  const pending = state.pendingPrivateUpload;
+  if (!pending?.storagePath || (importMeta.storagePath && pending.storagePath !== importMeta.storagePath)) return;
+  state.pendingPrivateUpload = null;
+  if (session && supabase) await supabase.storage.from("resume-files").remove([pending.storagePath]);
+}
+async function saveEvidenceImport(importMeta, proposals) {
+  if (!session || !importMeta.fileName) return true;
+  const { error } = await supabase.from("evidence_imports").insert({
+    id: uid(), user_id: session.user.id, storage_path: importMeta.storagePath || null,
+    file_name: importMeta.fileName, file_type: importMeta.fileType || "text/plain",
+    parse_status: "ready", proposed_evidence: proposals
+  });
+  if (error) throw new Error(`The private import record was not saved: ${error.message}`);
+  await saveConnection(importProvider(importMeta), {
+    externalId: importMeta.fileName,
+    metadata: { storagePath: importMeta.storagePath || null, fileType: importMeta.fileType || "text/plain", parsed: true }
+  });
+  return true;
+}
+
+function openEvidenceReview(proposals, importMeta = {}) {
+  const dismissImport = () => { void discardPendingPrivateUpload(importMeta); };
+  openModal(`<form id="evidence-review"><p>Review each proposed item. Unchecked or edited items will not influence your fit score.</p><div class="proposal-list">${proposals.map((item, index) => `<article><label><input type="checkbox" name="use-${index}" checked> Use this item</label><label>Type<select name="kind-${index}">${["project", "experience", "education", "skill"].map((kind) => `<option ${item.kind === kind ? "selected" : ""}>${kind}</option>`).join("")}</select></label><label>Title<input name="title-${index}" value="${esc(item.title)}"></label><label>Details<textarea name="details-${index}">${esc(item.details)}</textarea></label></article>`).join("")}</div><div class="form-actions">${actionButton("Cancel", "close", "secondary")}<button class="primary">Confirm selected evidence</button></div></form>`, () => {
+    $("[data-action=close]").onclick = () => { dismissImport(); closeModal(); };
+    $("#evidence-review").onsubmit = async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const selected = [];
+      for (let index = 0; index < proposals.length; index++) {
+        if (!form.get(`use-${index}`)) continue;
+        selected.push({
+          id: uid(), kind: form.get(`kind-${index}`), title: form.get(`title-${index}`).trim(),
+          details: form.get(`details-${index}`).trim(), source: importMeta.fileName ? importSource(importMeta) : proposals[index].source || "GitHub import", confirmed: true
+        });
+      }
+      const button = $("#evidence-review button.primary"); button.disabled = true; button.textContent = "Saving…";
+      try {
+        if (!await saveEvidenceBatch(selected)) { button.disabled = false; button.textContent = "Confirm selected evidence"; return; }
+        await saveEvidenceImport(importMeta, proposals);
+        state.pendingPrivateUpload = null;
+        closeModal(); state.view = "vault"; render();
+        toast(`${selected.length} confirmed item${selected.length === 1 ? "" : "s"} added.`);
+      } catch (error) {
+        toast(error.message); button.disabled = false; button.textContent = "Confirm selected evidence";
+      }
+    };
+  }, dismissImport);
+}
 
 function openGitHubImport() { openModal(`<section id="github-import"><p>Pick a public repository. RoleReady reads visible metadata and README text, then asks you to verify a proposed project description.</p><label>Public GitHub username<input id="github-login" value="${esc(session?.user?.user_metadata?.user_name || "")}" placeholder="your-username"></label>${actionButton("Find repositories", "load-github", "primary")}<div id="github-results"></div></section>`, () => { $("[data-action=load-github]").onclick = async () => { try { const data = await api("/api/github", { action: "repos", login: $("#github-login").value.trim() }); $("#github-results").innerHTML = `<div class="repo-list">${data.repos.map((repo) => `<button data-repo="${esc(repo.fullName)}"><b>${esc(repo.name)}</b><span>${esc(repo.description || "No repository description")} · ${esc(repo.language || "Technology not listed")}</span></button>`).join("")}</div>`; $$('[data-repo]').forEach((button) => button.onclick = async () => { try { const preview = await api("/api/github", { action: "preview", fullName: button.dataset.repo }); openEvidenceReview([preview.proposed]); } catch (error) { toast(error.message); } }); } catch (error) { toast(error.message); } }; }); }
 
@@ -538,7 +634,31 @@ async function copyRecruiterNote() { const note = captureKitEdits()?.recruiterNo
 function printKit() { const job = selectedJob(); const kit = captureKitEdits(); if (!kit) return toast("Generate a kit first."); const selected = selectedEvidenceForKit(job, kit); const windowRef = window.open("", "_blank"); if (!windowRef) return toast("Allow pop-ups to print your application kit."); windowRef.document.write(`<html><head><title>${esc(job.company)} application kit</title><style>body{max-width:760px;margin:48px auto;font:14px/1.55 Arial;color:#151b24}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:1px solid #ddd;padding-bottom:5px}.meta{color:#64748b}.item{margin:18px 0}.note{margin-top:40px;color:#64748b;font-size:11px}</style></head><body><h1>${esc(state.profile.full_name)}</h1><p class="meta">${esc(state.profile.target_role)} · ${esc(job.company)} application</p><h2>Summary</h2><p>${esc(kit.summary)}</p><h2>Selected experience</h2>${selected.map((item) => `<div class="item"><b>${esc(item.title)}</b><p>${esc(kit.bulletOptions?.find((bullet) => bullet.evidenceId === item.id)?.bullet || item.details)}</p></div>`).join("")}<h2>Recruiter note</h2><p>${esc(kit.recruiterNote)}</p><h2>Why this role</h2><p>${esc(kit.companyInterest)}</p><p class="note">Generated by RoleReady from user-confirmed evidence. Review before sending.</p></body></html>`); windowRef.document.close(); windowRef.focus(); windowRef.print(); }
 async function downloadDocx() { const job = selectedJob(); const kit = captureKitEdits(); if (!kit || !session) return toast("Sign in and generate an application kit first."); const selectedEvidence = selectedEvidenceForKit(job, kit).map((item) => ({ ...item, bullet: kit.bulletOptions?.find((bullet) => bullet.evidenceId === item.id)?.bullet })); try { const response = await fetch("/api/export", { method: "POST", headers: { "Content-Type": "application/json", ...tokenHeaders() }, body: JSON.stringify({ candidate: { ...state.profile, portfolio: kitRecord(job)?.config?.portfolio }, job, kit, selectedEvidence }) }); if (!response.ok) throw new Error((await response.json()).error); const url = URL.createObjectURL(await response.blob()); const link = document.createElement("a"); link.href = url; link.download = `${job.company}-application-kit.docx`; link.click(); URL.revokeObjectURL(url); } catch (error) { toast(error.message); } }
 
-async function runCode() { const output = $("#code-output"); const challenge = CHALLENGES[state.selectedChallengeId]; const code = $("#code").value; state.code = code; output.textContent = "Running private checks in an isolated sandbox…"; if (!session) { output.textContent = "Sign in to run protected hidden checks. The editor remains available for practice."; return; } try { const result = await api("/api/assessment", { language: state.language, code, challengeId: challenge.id, jobId: selectedJob()?.id }); state.assessmentOutput = `${result.passed ? "✓ Passed" : "Needs another pass"}\n\n${result.output}\n${result.hiddenSummary}\n\nNext: ${result.feedback?.nextStep || "Review your solution."}`; output.textContent = state.assessmentOutput; await supabase.from("coding_attempts").insert({ id: uid(), user_id: session.user.id, saved_job_id: selectedJob()?.id || null, language: state.language, challenge_id: challenge.id, passed: result.passed, result_summary: result.output, feedback: result.feedback || {} }); } catch (error) { state.assessmentOutput = `Could not run code: ${error.message}`; output.textContent = state.assessmentOutput; } }
+async function runCode() {
+  const output = $("#code-output");
+  const challenge = CHALLENGES[state.selectedChallengeId];
+  const code = $("#code").value;
+  state.code = code;
+  output.textContent = "Running server-evaluated checks in an isolated sandbox…";
+  if (!session) {
+    output.textContent = "Sign in to run the server-evaluated assessment. The editor remains available for practice.";
+    return;
+  }
+  try {
+    const result = await api("/api/assessment", { language: state.language, code, challengeId: challenge.id, jobId: selectedJob()?.id });
+    state.assessmentOutput = `${result.passed ? "✓ Passed" : "Needs another pass"}\n\n${result.output}\n${result.hiddenSummary}\n\nNext: ${result.feedback?.nextStep || "Review your solution."}`;
+    output.textContent = state.assessmentOutput;
+    const { error } = await supabase.from("coding_attempts").insert({
+      id: uid(), user_id: session.user.id, saved_job_id: selectedJob()?.id || null,
+      language: state.language, challenge_id: challenge.id, passed: result.passed,
+      result_summary: result.output, feedback: result.feedback || {}
+    });
+    if (error) toast(`Assessment ran, but its history was not saved: ${error.message}`);
+  } catch (error) {
+    state.assessmentOutput = `Could not run code: ${error.message}`;
+    output.textContent = state.assessmentOutput;
+  }
+}
 
 async function startInterview() { const job = selectedJob(); if (!session) return toast("Sign in to start a private role-aware interview."); try { const data = await api("/api/voice", { action: "start", job, profile: { ...state.profile, evidence: state.evidence } }); state.interview = { id: uid(), questions: data.questions, turns: [], index: 0, status: "in_progress", consent: false, startedAt: Date.now(), elapsed: "00:00" }; state.view = "interview"; render(); speak(data.questions[0]); startInterviewTimer(); } catch (error) { toast(error.message); } }
 function startInterviewTimer() { clearInterval(state.interviewTimer); state.interviewTimer = setInterval(() => { if (!state.interview || state.interview.status !== "in_progress") return clearInterval(state.interviewTimer); const seconds = Math.floor((Date.now() - state.interview.startedAt) / 1000); state.interview.elapsed = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`; const label = $(".meeting-context p:last-child"); if (label) label.textContent = `Question ${Math.min(state.interview.index + 1, 4)} of 4 · ${state.interview.elapsed}`; }, 1000); }
